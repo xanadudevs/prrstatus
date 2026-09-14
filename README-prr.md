@@ -71,10 +71,12 @@ O painel é **de atualização, não de criação**: não há botão para criar 
 
 ## O que o painel mostra
 
-- **Resumo no topo**: projetos em execução, concluídos, em atraso, taxa média de execução do projeto, investimento total, taxa média de execução financeira.
+- **Resumo no topo**: projetos em execução, concluídos, em atraso, taxa média de execução do projeto, investimento total, taxa média de execução financeira — recalculado consoante os filtros ativos (estado e coordenação).
 - **Filtros por estado**: em atraso, em execução, por iniciar, concluído.
+- **Filtros por coordenação**: gerados automaticamente a partir das unidades presentes nos dados (ex: UIA, UPACE, UID, URN). Combinam-se com o filtro de estado.
+- **Resumo executivo / alertas**: texto gerado automaticamente a partir dos dados atuais (nível de execução, heterogeneidade, desfasamento física vs. financeira, projetos que requerem atenção). Mostra "Alertas para a Direção" quando não há filtro de coordenação selecionado, ou "Resumo Executivo — [Coordenação]" quando se filtra por uma coordenação específica. É a mesma lógica usada no slide de sumário executivo do PowerPoint.
 - **Cartões agrupados por unidade** (UIA, UPACE, UID, URN), com ponto de cor por estado, barras de execução do projeto e financeira, investimento total e caixa de riscos em destaque.
-- **Exportar PowerPoint**: gera um `.pptx` (via PptxGenJS, no browser) com um slide de visão global para a Direção e um slide por unidade.
+- **Exportar PowerPoint**: gera um `.pptx` (via PptxGenJS, no browser) com um slide de sumário executivo, um slide de visão global para a Direção e slides por unidade.
 
 ## Nota de segurança
 
