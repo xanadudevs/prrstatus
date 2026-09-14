@@ -898,6 +898,89 @@
     slide.addText(p.riscos || 'Sem riscos registados.', { x: boxX + 0.12, y: boxY + 0.28, w: boxW - 0.24, h: boxH - 0.38, fontSize: 10, color: PPT_COLOR.ink, fontFace: 'Overpass', valign: 'top', shrinkText: true });
   }
 
+  function fmtList(arr){
+    if(!arr.length) return '';
+    if(arr.length === 1) return arr[0];
+    return arr.slice(0, -1).join(', ') + ' e ' + arr[arr.length - 1];
+  }
+
+  function buildExecutiveSummaryParagraphs(all){
+    const nExecucao = all.filter(p => p.estado === 'em_execucao').length;
+    const nConcluido = all.filter(p => p.estado === 'concluido').length;
+    const nAtraso = all.filter(p => p.estado === 'em_atraso').length;
+    const execGlobal = avgPct(all, 'taxaProjeto');
+
+    const atrasoClause = nAtraso === 0
+      ? 'não se encontrando projetos formalmente classificados como em atraso'
+      : `identificando-se ${nAtraso} projeto${nAtraso > 1 ? 's' : ''} formalmente classificado${nAtraso > 1 ? 's' : ''} como em atraso`;
+    const p1 = `Os dados denotam um nível global de execução de ${execGlobal}%, com ${nExecucao} projeto${nExecucao !== 1 ? 's' : ''} em execução e ${nConcluido} concluído${nConcluido !== 1 ? 's' : ''}, ${atrasoClause}.`;
+
+    const taxas = all.map(p => p.taxaProjeto).filter(v => typeof v === 'number');
+    const range = taxas.length > 1 ? Math.max(...taxas) - Math.min(...taxas) : 0;
+
+    const gaps = all
+      .filter(p => typeof p.taxaProjeto === 'number' && typeof p.taxaFinanceira === 'number')
+      .map(p => ({ p, gap: p.taxaProjeto - p.taxaFinanceira }));
+    const avgGap = gaps.length ? gaps.reduce((s, g) => s + g.gap, 0) / gaps.length : 0;
+
+    const heteroClause = range >= 25 ? 'alguma heterogeneidade no nível de execução dos projetos' : '';
+    const gapClause = avgGap >= 10
+      ? 'destacando-se projetos com execução física significativamente superior à financeira'
+      : (avgGap <= -10 ? 'destacando-se projetos com execução financeira superior à física' : '');
+    const bits2 = [heteroClause, gapClause].filter(Boolean);
+    const p2 = bits2.length
+      ? `Contudo, verifica-se ${bits2.join(', ')}.`
+      : 'Verifica-se uma execução relativamente homogénea entre os projetos, sem desfasamentos relevantes entre a execução física e financeira.';
+
+    const LOW_THRESHOLD = 50;
+    const lowProjects = all
+      .filter(p => (p.estado === 'em_execucao' || p.estado === 'em_atraso') &&
+        (p.estado === 'em_atraso' || (typeof p.taxaProjeto === 'number' && p.taxaProjeto < LOW_THRESHOLD)))
+      .sort((a, b) => {
+        const rank = x => x.estado === 'em_atraso' ? 0 : 1;
+        return rank(a) - rank(b) || (a.taxaProjeto ?? 0) - (b.taxaProjeto ?? 0);
+      })
+      .slice(0, 3);
+
+    const GAP_THRESHOLD = 15;
+    const gapProjects = gaps
+      .filter(g => g.p.estado !== 'concluido' && g.gap >= GAP_THRESHOLD)
+      .sort((a, b) => b.gap - a.gap)
+      .slice(0, 3)
+      .map(g => g.p);
+
+    const attentionParts = [];
+    if(lowProjects.length){
+      const lowLabel = p => p.estado === 'em_atraso'
+        ? `${p.nome} (em atraso${typeof p.taxaProjeto === 'number' ? ', ' + p.taxaProjeto + '%' : ''})`
+        : `${p.nome} (${p.taxaProjeto}%)`;
+      attentionParts.push(`aos projetos com menor execução ou em atraso, nomeadamente ${fmtList(lowProjects.map(lowLabel))}`);
+    }
+    if(gapProjects.length){
+      attentionParts.push(`aos projetos com maior desfasamento entre execução física e financeira, nomeadamente ${fmtList(gapProjects.map(p => `${p.nome} (${p.taxaProjeto}% vs ${p.taxaFinanceira}%)`))}`);
+    }
+    const p3 = attentionParts.length
+      ? `Nota: particular atenção deverá ser dada ${attentionParts.join(', bem como ')}.`
+      : 'Nota: não se identificam, nesta atualização, projetos que requeiram atenção particular ao nível da execução.';
+
+    return [p1, p2, p3];
+  }
+
+  function addExecutiveSummarySlide(pres, all, PAGE_W, PAGE_H, MARGIN){
+    const slide = pres.addSlide();
+    slide.background = { color: PPT_COLOR.bg };
+    slide.addText('Sumário Executivo', { x: MARGIN, y: 0.35, w: 8, h: 0.55, fontSize: 24, bold: true, color: PPT_COLOR.ink, fontFace: 'Overpass' });
+    slide.addText('Avaliação global — ' + new Date().toLocaleDateString('pt-PT'), { x: MARGIN, y: 0.92, w: 8, h: 0.35, fontSize: 12, color: PPT_COLOR.inkSoft, fontFace: 'Overpass' });
+    slide.addImage({ data: SPMS_LOGO_DATA_URI, x: PAGE_W - MARGIN - 2.45, y: 0.35, w: 2.45, h: 0.45 });
+
+    const boxY = 1.5, boxH = PAGE_H - boxY - 0.5;
+    slide.addShape(pres.ShapeType.roundRect, { x: MARGIN, y: boxY, w: PAGE_W - MARGIN * 2, h: boxH, rectRadius: 0.06, fill: { color: PPT_COLOR.card }, line: { color: PPT_COLOR.line, width: 0.75 } });
+    slide.addText(buildExecutiveSummaryParagraphs(all).join('\n\n'), {
+      x: MARGIN + 0.35, y: boxY + 0.25, w: PAGE_W - MARGIN * 2 - 0.7, h: boxH - 0.5,
+      fontSize: 14, color: PPT_COLOR.ink, fontFace: 'Overpass', valign: 'top', lineSpacingMultiple: 1.3, shrinkText: true,
+    });
+  }
+
   function addCoordenacaoSlide(pres, unidade, projects, page, totalPages, PAGE_W, PAGE_H, MARGIN){
     const slide = pres.addSlide();
     slide.background = { color: PPT_COLOR.bg };
@@ -982,6 +1065,8 @@
         const chunks = chunkArray(unidades[key], 6);
         chunks.forEach((chunk, i) => addCoordenacaoSlide(pres, key, chunk, i + 1, chunks.length, PAGE_W, PAGE_H, MARGIN));
       });
+
+      addExecutiveSummarySlide(pres, all, PAGE_W, PAGE_H, MARGIN);
 
       await pres.writeFile({ fileName: 'Painel-PRR.pptx' });
       setStatus('', 'PowerPoint gerado.');
