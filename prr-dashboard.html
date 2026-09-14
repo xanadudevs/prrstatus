@@ -900,9 +900,18 @@
     const boxW = w * 0.4;
     const boxY = y + 0.14;
     const boxH = h - 0.28;
-    slide.addShape(pres.ShapeType.roundRect, { x: boxX, y: boxY, w: boxW, h: boxH, rectRadius: 0.04, fill: { color: hexBg }, line: { type: 'none' } });
-    slide.addText('RISCOS', { x: boxX + 0.12, y: boxY + 0.08, w: boxW - 0.24, h: 0.18, fontSize: 6.5, bold: true, color: hex, fontFace: 'Overpass' });
-    slide.addText(p.riscos || 'Sem riscos registados.', { x: boxX + 0.12, y: boxY + 0.28, w: boxW - 0.24, h: boxH - 0.38, fontSize: 10, color: PPT_COLOR.ink, fontFace: 'Overpass', valign: 'top', shrinkText: true });
+    const boxGap = 0.1;
+    const sectionH = (boxH - boxGap * 2) / 3;
+
+    function drawInfoBox(label, text, boxTop, opts){
+      slide.addShape(pres.ShapeType.roundRect, { x: boxX, y: boxTop, w: boxW, h: sectionH, rectRadius: 0.04, fill: { color: opts.bg }, line: opts.line || { type: 'none' } });
+      slide.addText(label, { x: boxX + 0.12, y: boxTop + 0.06, w: boxW - 0.24, h: 0.18, fontSize: 6.5, bold: true, color: opts.labelColor, fontFace: 'Overpass' });
+      slide.addText(text, { x: boxX + 0.12, y: boxTop + 0.25, w: boxW - 0.24, h: sectionH - 0.33, fontSize: 8.5, color: PPT_COLOR.ink, fontFace: 'Overpass', valign: 'top', shrinkText: true });
+    }
+
+    drawInfoBox('DEPENDÊNCIAS', p.dependencias || 'Sem dependências registadas.', boxY, { bg: PPT_COLOR.card, line: { color: PPT_COLOR.line, width: 0.75 }, labelColor: PPT_COLOR.inkSoft });
+    drawInfoBox('RISCOS', p.riscos || 'Sem riscos registados.', boxY + (sectionH + boxGap), { bg: hexBg, labelColor: hex });
+    drawInfoBox('PRÓXIMOS PASSOS', p.proximosPassos || 'Sem próximos passos registados.', boxY + 2 * (sectionH + boxGap), { bg: PPT_COLOR.card, line: { color: PPT_COLOR.line, width: 0.75 }, labelColor: PPT_COLOR.inkSoft });
   }
 
   function fmtList(arr){
@@ -998,7 +1007,7 @@
       slide.addText(`${page} / ${totalPages}`, { x: PAGE_W - MARGIN - 1.2, y: 0.7, w: 1.2, h: 0.3, align: 'right', fontSize: 10, color: PPT_COLOR.inkSoft, fontFace: 'Overpass' });
     }
 
-    const cols = 2, rows = 3, gap = 0.22, gridTop = 1.45;
+    const cols = 2, rows = 2, gap = 0.22, gridTop = 1.45;
     const gridW = PAGE_W - MARGIN * 2;
     const gridH = PAGE_H - gridTop - 0.35;
     const cardW = (gridW - gap * (cols - 1)) / cols;
@@ -1071,7 +1080,7 @@
       addExecutiveSummarySlide(pres, all, PAGE_W, PAGE_H, MARGIN);
 
       Object.keys(unidades).sort().forEach(key => {
-        const chunks = chunkArray(unidades[key], 6);
+        const chunks = chunkArray(unidades[key], 4);
         chunks.forEach((chunk, i) => addCoordenacaoSlide(pres, key, chunk, i + 1, chunks.length, PAGE_W, PAGE_H, MARGIN));
       });
 
