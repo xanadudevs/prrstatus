@@ -902,14 +902,14 @@
     const slide = pres.addSlide();
     slide.background = { color: PPT_COLOR.bg };
     slide.addText('Resumo Executivo — Riscos', { x: MARGIN, y: 0.35, w: 8, h: 0.55, fontSize: 24, bold: true, color: PPT_COLOR.ink, fontFace: 'Overpass' });
-    slide.addText('Projetos em atraso e pontos de risco identificados', { x: MARGIN, y: 0.9, w: 8, h: 0.3, fontSize: 11, bold: true, color: PPT_COLOR.risco, fontFace: 'Overpass' });
+    slide.addText('Projetos com riscos identificados', { x: MARGIN, y: 0.9, w: 8, h: 0.3, fontSize: 11, bold: true, color: PPT_COLOR.risco, fontFace: 'Overpass' });
     slide.addImage({ data: SPMS_LOGO_DATA_URI, x: PAGE_W - MARGIN - 1.75, y: 0.32, w: 1.75, h: 0.32 });
     if(totalPages > 1){
       slide.addText(`${page} / ${totalPages}`, { x: PAGE_W - MARGIN - 1.2, y: 0.7, w: 1.2, h: 0.3, align: 'right', fontSize: 10, color: PPT_COLOR.inkSoft, fontFace: 'Overpass' });
     }
 
     if(!items.length){
-      slide.addText('Sem projetos em atraso nem riscos reportados nesta atualização.', { x: MARGIN, y: 3.3, w: PAGE_W - MARGIN * 2, h: 0.6, align: 'center', fontSize: 14, bold: true, color: PPT_COLOR.normal, fontFace: 'Overpass' });
+      slide.addText('Sem riscos reportados nesta atualização.', { x: MARGIN, y: 3.3, w: PAGE_W - MARGIN * 2, h: 0.6, align: 'center', fontSize: 14, bold: true, color: PPT_COLOR.normal, fontFace: 'Overpass' });
       return;
     }
 
@@ -935,7 +935,7 @@
       const riskX = padL + nameW + 0.2;
       const riskW = rowW - (nameW + 0.2) - 0.4;
       slide.addText('RISCO / PONTO DE ATENÇÃO', { x: riskX, y: y + 0.1, w: riskW, h: 0.18, fontSize: 6.5, bold: true, color: hex, fontFace: 'Overpass' });
-      slide.addText(p.riscos || 'Projeto em atraso — sem detalhe de risco registado.', { x: riskX, y: y + 0.3, w: riskW, h: rowH - 0.4, fontSize: 8.5, color: PPT_COLOR.ink, fontFace: 'Overpass', valign: 'top', shrinkText: true });
+      slide.addText(p.riscos, { x: riskX, y: y + 0.3, w: riskW, h: rowH - 0.4, fontSize: 8.5, color: PPT_COLOR.ink, fontFace: 'Overpass', valign: 'top', shrinkText: true });
     });
   }
 
@@ -1020,7 +1020,7 @@
       });
 
       const riskItems = all
-        .filter(p => p.estado === 'em_atraso' || (p.riscos && p.riscos.trim()))
+        .filter(p => p.riscos && p.riscos.trim())
         .sort((a, b) => {
           const rank = x => x.estado === 'em_atraso' ? 0 : 1;
           return rank(a) - rank(b) || (a.unidade || '').localeCompare(b.unidade || '') || (a.nome || '').localeCompare(b.nome || '');
