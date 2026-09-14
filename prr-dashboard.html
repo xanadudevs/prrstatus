@@ -874,7 +874,7 @@
     slide.addShape(pres.ShapeType.rect, { x, y, w: 0.07, h, fill: { color: hex }, line: { type: 'none' } });
 
     const padL = x + 0.22;
-    const leftW = w * 0.55;
+    const leftW = w * 0.40;
     const contentW = leftW - 0.35;
 
     const badgeW = 1.1, badgeH = 0.22;
@@ -890,9 +890,9 @@
     function drawBar(label, value, barTop){
       slide.addText(label, { x: padL, y: barTop, w: contentW, h: 0.16, fontSize: 6.5, color: PPT_COLOR.inkSoft, fontFace: 'Overpass' });
       slide.addText(value !== null ? value + '%' : '—', { x: padL, y: barTop, w: contentW, h: 0.16, align: 'right', fontSize: 8.5, bold: true, color: hex, fontFace: 'Overpass' });
-      slide.addShape(pres.ShapeType.rect, { x: padL, y: barTop + 0.17, w: contentW, h: 0.055, fill: { color: 'E4E8F0' }, line: { type: 'none' } });
+      slide.addShape(pres.ShapeType.rect, { x: padL, y: barTop + 0.17, w: contentW, h: 0.04, fill: { color: 'E4E8F0' }, line: { type: 'none' } });
       if(value){
-        slide.addShape(pres.ShapeType.rect, { x: padL, y: barTop + 0.17, w: contentW * Math.min(1, value / 100), h: 0.055, fill: { color: hex }, line: { type: 'none' } });
+        slide.addShape(pres.ShapeType.rect, { x: padL, y: barTop + 0.17, w: contentW * Math.min(1, value / 100), h: 0.04, fill: { color: hex }, line: { type: 'none' } });
       }
     }
 
@@ -905,19 +905,25 @@
 
     slide.addText('Investimento: ' + fmtEuro(p.investimentoTotal), { x: padL, y: bar2Y + 0.30, w: contentW, h: 0.2, fontSize: 10, bold: true, color: PPT_COLOR.ink, fontFace: 'Overpass' });
 
-    const boxX = x + w * 0.58;
-    const boxW = w * 0.4;
+    const boxX = x + w * 0.43;
+    const boxW = w * 0.55;
     const boxY = y + 0.14;
     const boxH = h - 0.28;
     const boxGap = 0.1;
     const sectionH = (boxH - boxGap * 2) / 3;
 
-    const INFO_TEXT_MAX_CHARS = 210;
+    const INFO_FONT_SIZE = 10.5;
+    const infoTextW = boxW - 0.24;
+    const infoTextH = sectionH - 0.33;
+    const CHAR_W_PER_PT = 0.0065, LINE_H_PER_PT = 1.2 / 72;
+    const infoCharsPerLine = infoTextW / (INFO_FONT_SIZE * CHAR_W_PER_PT);
+    const infoLines = infoTextH / (INFO_FONT_SIZE * LINE_H_PER_PT);
+    const INFO_TEXT_MAX_CHARS = Math.floor(infoCharsPerLine * infoLines * 0.85);
 
     function drawInfoBox(label, text, boxTop, opts){
       slide.addShape(pres.ShapeType.roundRect, { x: boxX, y: boxTop, w: boxW, h: sectionH, rectRadius: 0.04, fill: { color: opts.bg }, line: opts.line || { type: 'none' } });
       slide.addText(label, { x: boxX + 0.12, y: boxTop + 0.06, w: boxW - 0.24, h: 0.18, fontSize: 6.5, bold: true, color: opts.labelColor, fontFace: 'Overpass' });
-      slide.addText(truncateText(text, INFO_TEXT_MAX_CHARS), { x: boxX + 0.12, y: boxTop + 0.25, w: boxW - 0.24, h: sectionH - 0.33, fontSize: 8.5, color: PPT_COLOR.ink, fontFace: 'Overpass', valign: 'top', shrinkText: true });
+      slide.addText(truncateText(text, INFO_TEXT_MAX_CHARS), { x: boxX + 0.12, y: boxTop + 0.25, w: infoTextW, h: infoTextH, fontSize: INFO_FONT_SIZE, color: PPT_COLOR.ink, fontFace: 'Overpass', valign: 'top', shrinkText: true });
     }
 
     drawInfoBox('DEPENDÊNCIAS', p.dependencias || 'Sem dependências registadas.', boxY, { bg: PPT_COLOR.card, line: { color: PPT_COLOR.line, width: 0.75 }, labelColor: PPT_COLOR.inkSoft });
