@@ -877,13 +877,15 @@
     const leftW = w * 0.55;
     const contentW = leftW - 0.35;
 
-    slide.addShape(pres.ShapeType.ellipse, { x: padL, y: y + 0.16, w: 0.13, h: 0.13, fill: { color: hex }, line: { type: 'none' } });
-    slide.addText((p.unidade || '—') + (p.ficha ? ' · Ficha ' + p.ficha : ''), { x: padL + 0.2, y: y + 0.08, w: contentW, h: 0.2, fontSize: 7, bold: true, color: PPT_COLOR.inkSoft, fontFace: 'Overpass' });
-    slide.addText(p.nome || '', { x: padL + 0.2, y: y + 0.27, w: contentW, h: 0.5, fontSize: 10.5, bold: true, color: PPT_COLOR.ink, fontFace: 'Overpass', valign: 'top', shrinkText: true });
+    const badgeW = 1.1, badgeH = 0.22;
 
-    const badgeW = 1.15;
-    slide.addShape(pres.ShapeType.roundRect, { x: x + w - badgeW - 0.15, y: y + 0.14, w: badgeW, h: 0.26, rectRadius: 0.05, fill: { color: hexBg }, line: { type: 'none' } });
-    slide.addText(ESTADO_LABEL[p.estado] || p.estado || '', { x: x + w - badgeW - 0.15, y: y + 0.14, w: badgeW, h: 0.26, align: 'center', fontSize: 7, bold: true, color: hex, fontFace: 'Overpass', valign: 'middle' });
+    slide.addShape(pres.ShapeType.ellipse, { x: padL, y: y + 0.16, w: 0.13, h: 0.13, fill: { color: hex }, line: { type: 'none' } });
+    slide.addText((p.unidade || '—') + (p.ficha ? ' · Ficha ' + p.ficha : ''), { x: padL + 0.2, y: y + 0.08, w: contentW - badgeW - 0.15, h: 0.2, fontSize: 7, bold: true, color: PPT_COLOR.inkSoft, fontFace: 'Overpass' });
+    slide.addText(p.nome || '', { x: padL + 0.2, y: y + 0.32, w: contentW, h: 0.45, fontSize: 10.5, bold: true, color: PPT_COLOR.ink, fontFace: 'Overpass', valign: 'top', shrinkText: true });
+
+    const badgeX = padL + 0.2 + contentW - badgeW;
+    slide.addShape(pres.ShapeType.roundRect, { x: badgeX, y: y + 0.07, w: badgeW, h: badgeH, rectRadius: 0.05, fill: { color: hexBg }, line: { type: 'none' } });
+    slide.addText(ESTADO_LABEL[p.estado] || p.estado || '', { x: badgeX, y: y + 0.07, w: badgeW, h: badgeH, align: 'center', fontSize: 6.5, bold: true, color: hex, fontFace: 'Overpass', valign: 'middle' });
 
     function drawBar(label, value, barTop){
       slide.addText(label, { x: padL, y: barTop, w: contentW, h: 0.16, fontSize: 6.5, color: PPT_COLOR.inkSoft, fontFace: 'Overpass' });
