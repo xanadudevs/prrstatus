@@ -1007,7 +1007,7 @@
       slide.addText(`${page} / ${totalPages}`, { x: PAGE_W - MARGIN - 1.2, y: 0.7, w: 1.2, h: 0.3, align: 'right', fontSize: 10, color: PPT_COLOR.inkSoft, fontFace: 'Overpass' });
     }
 
-    const cols = 2, rows = 2, gap = 0.22, gridTop = 1.45;
+    const cols = 1, rows = 2, gap = 0.22, gridTop = 1.45;
     const gridW = PAGE_W - MARGIN * 2;
     const gridH = PAGE_H - gridTop - 0.35;
     const cardW = (gridW - gap * (cols - 1)) / cols;
@@ -1080,7 +1080,7 @@
       addExecutiveSummarySlide(pres, all, PAGE_W, PAGE_H, MARGIN);
 
       Object.keys(unidades).sort().forEach(key => {
-        const chunks = chunkArray(unidades[key], 4);
+        const chunks = chunkArray(unidades[key], 2);
         chunks.forEach((chunk, i) => addCoordenacaoSlide(pres, key, chunk, i + 1, chunks.length, PAGE_W, PAGE_H, MARGIN));
       });
 
