@@ -81,6 +81,11 @@
     cursor: pointer; font-family: 'Overpass', sans-serif;
   }
   .chip.active{ background: var(--ink); color: #fff; border-color: var(--ink); }
+  .add-project-btn{
+    margin-left: auto; background: var(--ink); color: #fff; border: none; border-radius: 20px;
+    padding: 9px 18px; font-size: 13px; font-weight: 700; cursor: pointer;
+  }
+  .add-project-btn:hover{ opacity: .85; }
 
   /* Executive summary */
   .exec-summary{
@@ -232,6 +237,7 @@
     <button class="chip" data-filter="em_execucao">Em execução</button>
     <button class="chip" data-filter="por_iniciar">Por iniciar</button>
     <button class="chip" data-filter="concluido">Concluído</button>
+    <button class="add-project-btn" id="addProjectBtn">+ Novo projeto</button>
   </div>
   <div class="filters unidade-filters" id="unidadeFilters"></div>
 
@@ -418,7 +424,7 @@
   const el = id => document.getElementById(id);
   const $ = {
     statusMsg: el('statusMsg'), updatedLabel: el('updatedLabel'),
-    groupsContainer: el('groupsContainer'), filters: el('filters'),
+    groupsContainer: el('groupsContainer'), filters: el('filters'), addProjectBtn: el('addProjectBtn'),
     unidadeFilters: el('unidadeFilters'), execSummary: el('execSummary'),
     exportPptxBtn: el('exportPptxBtn'),
     overlay: el('overlay'), modalTitle: el('modalTitle'),
@@ -441,24 +447,32 @@
     $.statusMsg.textContent = text;
   }
 
+  function generateProjectId(nome){
+    const base = slugify(nome);
+    let id = base, i = 2;
+    while(state.projects.some(p => p.id === id)) id = `${base}-${i++}`;
+    return id;
+  }
+
   function openModal(project){
-    state.editingId = project.id;
-    $.modalTitle.textContent = 'Editar projeto';
-    $.mNome.value = project.nome || '';
-    $.mUnidade.value = project.unidade || '';
-    $.mFicha.value = project.ficha || '';
-    $.mEstado.value = project.estado || 'em_execucao';
-    $.mGestor.value = project.gestor || '';
-    $.mTaxaProjeto.value = project.taxaProjeto ?? '';
-    $.mTaxaFinanceira.value = project.taxaFinanceira ?? '';
-    $.mInvestimento.value = project.investimentoTotal ?? '';
-    $.mDependencias.value = project.dependencias || '';
-    $.mRiscos.value = project.riscos || '';
-    $.mProximosPassos.value = project.proximosPassos || '';
+    state.editingId = project ? project.id : null;
+    $.modalTitle.textContent = project ? 'Editar projeto' : 'Novo projeto';
+    $.mNome.value = project?.nome || '';
+    $.mUnidade.value = project?.unidade || '';
+    $.mFicha.value = project?.ficha || '';
+    $.mEstado.value = project?.estado || 'em_execucao';
+    $.mGestor.value = project?.gestor || '';
+    $.mTaxaProjeto.value = project?.taxaProjeto ?? '';
+    $.mTaxaFinanceira.value = project?.taxaFinanceira ?? '';
+    $.mInvestimento.value = project?.investimentoTotal ?? '';
+    $.mDependencias.value = project?.dependencias || '';
+    $.mRiscos.value = project?.riscos || '';
+    $.mProximosPassos.value = project?.proximosPassos || '';
     $.overlay.classList.add('open');
   }
   function closeModal(){ $.overlay.classList.remove('open'); }
 
+  $.addProjectBtn.addEventListener('click', () => openModal());
   $.cancelModal.addEventListener('click', closeModal);
   $.overlay.addEventListener('click', (e) => { if(e.target === $.overlay) closeModal(); });
 
@@ -471,7 +485,7 @@
     const invest = $.mInvestimento.value === '' ? null : parseFloat($.mInvestimento.value);
 
     const record = {
-      id: state.editingId,
+      id: state.editingId || generateProjectId(nome),
       nome,
       unidade: $.mUnidade.value.trim(),
       ficha: $.mFicha.value.trim(),
@@ -487,7 +501,7 @@
     };
 
     const idx = state.projects.findIndex(p => p.id === record.id);
-    state.projects[idx] = record;
+    if(idx >= 0) state.projects[idx] = record; else state.projects.unshift(record);
 
     closeModal();
     render();

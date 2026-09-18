@@ -57,17 +57,15 @@ Como não há autenticação de utilizadores, a política de RLS usada aqui (ver
 
 Enquanto `SUPABASE_URL`/`SUPABASE_ANON_KEY` não estiverem preenchidos, o painel mostra um aviso no topo e as edições ficam só em memória do browser (perdem-se ao recarregar).
 
-## Fluxo de trabalho: importar uma vez, depois só atualizar
+## Fluxo de trabalho: importar em bloco ou gerir projeto a projeto
 
-O painel é **de atualização, não de criação**: não há botão para criar nem para remover projetos na aplicação. A lista de projetos é definida pelo Excel importado, e a partir daí só se editam os campos de projetos já existentes (estado, taxas, investimento, dependências, riscos, próximos passos, gestor).
-
-1. **Carregar os dados** — botão **"Importar Excel"**, que lê um ficheiro no formato "Ponto de Situação Projeto PRR" (folha `PDS PRR`, com cabeçalhos como "Unidade", "N. Ficha Projecto", "Nome do Projetos", "Estado", "Taxa de execução projeto", "Investimento total", "Taxa de execução financeira", "Dependências", "Riscos", "Próximos Passos", "Gestor de Projeto") e substitui todos os projetos atuais pelos do ficheiro.
+1. **Carregar os dados em bloco** — botão **"Importar Excel"**, que lê um ficheiro no formato "Ponto de Situação Projeto PRR" (folha `PDS PRR`, com cabeçalhos como "Unidade", "N. Ficha Projecto", "Nome do Projetos", "Estado", "Taxa de execução projeto", "Investimento total", "Taxa de execução financeira", "Dependências", "Riscos", "Próximos Passos", "Gestor de Projeto") e substitui todos os projetos atuais pelos do ficheiro.
    - As taxas podem vir em fração (`0.7`) ou já em percentagem (`70`) — o painel deteta automaticamente.
    - O campo "Estado" aceita as variações do Excel de origem ("em atraso", "em execução", "por iniciar"/"por inciar", "concluído") e mapeia para os quatro estados do painel.
    - Se o Supabase estiver configurado, a importação é logo gravada na base de dados; caso contrário fica só na sessão.
-   - A operação pede confirmação antes de substituir os dados, porque é destrutiva — usa-se tipicamente uma vez, para semear ou repor a lista completa (ex: no início de um novo período de reporte).
+   - A operação pede confirmação antes de substituir os dados, porque é destrutiva — usa-se tipicamente para semear ou repor a lista completa (ex: no início de um novo período de reporte).
    - Antes de reimportar (substituir tudo), é boa prática guardar primeiro uma cópia dos dados atuais com o botão **"Exportar Excel"** — gera um `.xlsx` no mesmo formato, que serve de backup e pode ser reimportado se algo correr mal.
-2. **Atualizar no dia a dia** — botão "editar" em cada cartão. Não é preciso voltar a importar Excel para mudar o estado, as taxas ou os riscos de um projeto existente.
+2. **Gerir projeto a projeto** — botão **"+ Novo projeto"** para criar um projeto individual, e botão "editar" em cada cartão para atualizar os campos de um projeto já existente (estado, taxas, investimento, dependências, riscos, próximos passos, gestor). Não é preciso voltar a importar Excel para isto. Não há, propositadamente, um botão para remover projetos na aplicação — para tirar um projeto da lista, volta a importar-se um Excel atualizado sem esse projeto.
 
 ## O que o painel mostra
 
