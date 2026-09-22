@@ -107,6 +107,40 @@ Com isso, o painel consegue comparar os valores atuais com a fotografia mais rec
 
 Não há dados anteriores a este mês (a funcionalidade só começa a acumular histórico a partir de agora), por isso as variações só aparecem depois de a tabela `project_snapshots` ter pelo menos uma fotografia de uma semana anterior à atual — até lá, os números aparecem normalmente, sem variação ao lado.
 
+### Captura fiável à sexta-feira, 23h (recomendado)
+
+A fotografia feita pelo browser (acima) só acontece se alguém tiver a página aberta nessa altura — não é garantido que aconteça exatamente à sexta-feira às 23h, só que acontece "algures durante a semana". Para garantir que a comparação é sempre feita em relação ao **fim da semana anterior**, corre esta SQL uma vez no **SQL Editor** do Supabase — cria uma tarefa agendada (via `pg_cron`, incluído no Supabase) que grava a fotografia da semana diretamente na base de dados, todas as sextas-feiras às 23h, sem depender de ninguém ter a página aberta:
+
+```sql
+create extension if not exists pg_cron;
+
+create or replace function capture_weekly_snapshot()
+returns void
+language plpgsql
+as $$
+begin
+  insert into project_snapshots (project_id, week_start, estado, taxa_projeto, taxa_financeira, investimento_total, captured_at)
+  select id, date_trunc('week', current_date)::date, estado, taxa_projeto, taxa_financeira, investimento_total, now()
+  from projects
+  on conflict (project_id, week_start) do update set
+    estado = excluded.estado,
+    taxa_projeto = excluded.taxa_projeto,
+    taxa_financeira = excluded.taxa_financeira,
+    investimento_total = excluded.investimento_total,
+    captured_at = excluded.captured_at;
+end;
+$$;
+
+select cron.unschedule(jobid) from cron.job where jobname = 'captura-semanal-sexta-23h';
+select cron.schedule('captura-semanal-sexta-23h', '0 23 * * 5', 'select capture_weekly_snapshot();');
+```
+
+Notas:
+- Se `create extension if not exists pg_cron;` der erro de permissões, ativa a extensão pelo **Database → Extensions** do Supabase (procurar "pg_cron" e ativar) e depois corre o resto do bloco.
+- O `pg_cron` corre em UTC, não em hora de Lisboa — `'0 23 * * 5'` é "sexta-feira às 23h UTC", ou seja, 23h em Lisboa no horário de inverno e 00h (já sábado) no horário de verão (desfasamento de 1h, sem grande impacto numa fotografia semanal).
+- Isto não substitui a captura feita pelo browser — as duas coexistem. A do browser serve de rascunho/reserva; a tarefa agendada é que garante a versão final de cada semana, à sexta-feira 23h, independentemente de alguém ter aberto a página.
+- Podes confirmar que a tarefa ficou criada com `select * from cron.job;` no SQL Editor.
+
 ## Nota de segurança
 
 Os dados dos projetos ficam na base de dados Supabase, não neste repositório. A chave `SUPABASE_ANON_KEY` escrita em `prr-dashboard.html` é segura por design — mas, como não há autenticação de utilizadores, qualquer pessoa com o link da página pode editar ou apagar dados (ver aviso na secção "Persistência dos dados" acima). `projects.json` deixou de ser usado; pode ser removido do repositório quando quiseres.
