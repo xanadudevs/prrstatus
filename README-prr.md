@@ -45,7 +45,27 @@ Como não há autenticação de utilizadores, a política de RLS usada aqui (ver
    create policy "Escrita pública" on projects for insert with check (true);
    create policy "Atualização pública" on projects for update using (true);
    create policy "Remoção pública" on projects for delete using (true);
+
+   create table project_snapshots (
+     id bigint generated always as identity primary key,
+     project_id text not null,
+     week_start date not null,
+     estado text,
+     taxa_projeto numeric,
+     taxa_financeira numeric,
+     investimento_total numeric,
+     captured_at timestamptz not null default now(),
+     unique (project_id, week_start)
+   );
+
+   alter table project_snapshots enable row level security;
+
+   create policy "Leitura pública" on project_snapshots for select using (true);
+   create policy "Escrita pública" on project_snapshots for insert with check (true);
+   create policy "Atualização pública" on project_snapshots for update using (true);
+   create policy "Remoção pública" on project_snapshots for delete using (true);
    ```
+   `project_snapshots` é opcional: só é usada para mostrar a variação face à semana anterior (ver secção "Evolução semanal" abaixo). Sem ela, o painel funciona na mesma, só sem essas variações. Nota que `project_id` não tem uma foreign key para `projects.id` de propósito — assim, reimportar um Excel (que apaga e recria a tabela `projects`) não arrasta consigo o histórico semanal já acumulado.
 3. Vai a **Project Settings → API** e copia o **Project URL** e a chave **`anon` `public`**.
 4. No `prr-dashboard.html`, procura estas duas linhas e substitui pelos valores copiados:
    ```js
@@ -69,12 +89,23 @@ Enquanto `SUPABASE_URL`/`SUPABASE_ANON_KEY` não estiverem preenchidos, o painel
 
 ## O que o painel mostra
 
-- **Resumo no topo**: projetos em execução, concluídos, em atraso, taxa média de execução do projeto, investimento total, taxa média de execução financeira — recalculado consoante os filtros ativos (estado e coordenação).
+- **Resumo no topo**: projetos em execução, concluídos, em atraso, taxa média de execução do projeto, investimento total, taxa média de execução financeira — recalculado consoante os filtros ativos (estado e coordenação), com a variação face à semana anterior ao lado de cada número (ver "Evolução semanal" abaixo).
 - **Filtros por estado**: em atraso, em execução, por iniciar, concluído.
 - **Filtros por coordenação**: gerados automaticamente a partir das unidades presentes nos dados (ex: UIA, UPACE, UID, URN). Combinam-se com o filtro de estado.
-- **Resumo executivo / alertas**: texto gerado automaticamente a partir dos dados atuais (nível de execução, heterogeneidade, desfasamento física vs. financeira, projetos que requerem atenção). Mostra "Alertas para a Direção" quando não há filtro de coordenação selecionado, ou "Resumo Executivo — [Coordenação]" quando se filtra por uma coordenação específica. É a mesma lógica usada no slide de sumário executivo do PowerPoint.
-- **Cartões agrupados por unidade** (UIA, UPACE, UID, URN), com ponto de cor por estado, barras de execução do projeto e financeira, investimento total e caixa de riscos em destaque.
+- **Resumo executivo / alertas**: texto gerado automaticamente a partir dos dados atuais (nível de execução, evolução semanal, heterogeneidade, desfasamento física vs. financeira, projetos que requerem atenção). Mostra "Alertas para a Direção" quando não há filtro de coordenação selecionado, ou "Resumo Executivo — [Coordenação]" quando se filtra por uma coordenação específica. É a mesma lógica usada no slide de sumário executivo do PowerPoint.
+- **Cartões agrupados por unidade** (UIA, UPACE, UID, URN), com ponto de cor por estado, barras de execução do projeto e financeira (cada uma com a respetiva variação semanal), investimento total e caixa de riscos em destaque.
 - **Exportar PowerPoint**: gera um `.pptx` (via PptxGenJS, no browser) com um slide de sumário executivo, um slide de visão global para a Direção e slides por unidade.
+
+## Evolução semanal
+
+Sempre que a página carrega os dados (ou sempre que se cria/edita um projeto ou se importa um Excel), o painel grava automaticamente, na tabela `project_snapshots`, uma "fotografia" da semana corrente (estado, taxas, investimento de cada projeto) — no máximo uma por projeto por semana ISO (segunda a domingo); voltar a carregar a página na mesma semana só atualiza essa fotografia, não cria linhas a mais.
+
+Com isso, o painel consegue comparar os valores atuais com a fotografia mais recente **anterior** à semana corrente, e mostrar a diferença:
+- Nos indicadores do topo (contagens e médias/somas).
+- Nas barras de execução do projeto e financeira, dentro de cada cartão.
+- Numa frase adicional no resumo executivo/alertas (ex: "a taxa média de execução subiu 3 pontos percentuais" ou "X entrou em atraso desde então").
+
+Não há dados anteriores a este mês (a funcionalidade só começa a acumular histórico a partir de agora), por isso as variações só aparecem depois de a tabela `project_snapshots` ter pelo menos uma fotografia de uma semana anterior à atual — até lá, os números aparecem normalmente, sem variação ao lado.
 
 ## Nota de segurança
 

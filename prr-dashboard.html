@@ -67,10 +67,17 @@
   .updated{ font-size: 12px; color: var(--ink-soft); font-weight: 600; margin: 4px 0 24px; }
 
   /* Summary */
-  .summary{ display: grid; grid-template-columns: repeat(6, 1fr); gap: 12px; margin-bottom: 28px; }
+  .summary{ display: grid; grid-template-columns: repeat(6, 1fr); gap: 12px; margin-bottom: 6px; }
   .summary .tile{ background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; }
   .summary .tile .num{ font-family: 'Overpass', sans-serif; font-size: 21px; font-weight: 700; }
   .summary .tile .label{ font-size: 10.5px; color: var(--ink-soft); margin-top: 4px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.02em; line-height: 1.3; }
+  .delta-note{ font-size: 11.5px; color: var(--ink-soft); font-weight: 600; margin: 0 0 22px; min-height: 1em; }
+
+  .val-group{ display:inline-flex; align-items:baseline; gap: 2px; }
+  .delta{ font-size: 11px; font-weight: 800; white-space: nowrap; }
+  .summary .tile .num .delta{ font-size: 11.5px; margin-left: 3px; vertical-align: middle; }
+  .delta.up{ color: var(--normal); }
+  .delta.down{ color: var(--risco); }
 
   /* Filters */
   .filters{ display:flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; align-items:center; }
@@ -228,6 +235,7 @@
     <div class="tile"><div class="num" id="sumInvestimento">€0</div><div class="label">Investimento total</div></div>
     <div class="tile"><div class="num" id="sumTaxaFin">0%</div><div class="label">Taxa execução financeira</div></div>
   </div>
+  <p class="delta-note" id="deltaNote"></p>
 
   <div class="exec-summary" id="execSummary"></div>
 
@@ -418,14 +426,14 @@
 ];
 
   const state = {
-    projects: DEFAULT_PROJECTS.slice(), editingId: null, filter: 'todos', unidadeFilter: 'todas'
+    projects: DEFAULT_PROJECTS.slice(), editingId: null, filter: 'todos', unidadeFilter: 'todas', baseline: {}
   };
 
   const el = id => document.getElementById(id);
   const $ = {
     statusMsg: el('statusMsg'), updatedLabel: el('updatedLabel'),
     groupsContainer: el('groupsContainer'), filters: el('filters'), addProjectBtn: el('addProjectBtn'),
-    unidadeFilters: el('unidadeFilters'), execSummary: el('execSummary'),
+    unidadeFilters: el('unidadeFilters'), execSummary: el('execSummary'), deltaNote: el('deltaNote'),
     exportPptxBtn: el('exportPptxBtn'),
     overlay: el('overlay'), modalTitle: el('modalTitle'),
     mNome: el('mNome'), mUnidade: el('mUnidade'), mFicha: el('mFicha'), mEstado: el('mEstado'),
@@ -506,6 +514,7 @@
     closeModal();
     render();
     await dbSaveProject(record);
+    dbCaptureWeeklySnapshot();
   });
 
   // --- Persistência via Supabase (base de dados Postgres gratuita) ---
@@ -559,12 +568,57 @@
       const { data, error } = await sb.from('projects').select('*').order('updated_at', { ascending: false });
       if(error) throw new Error(error.message);
       state.projects = data.map(rowToProject);
+      state.baseline = await dbLoadBaseline(isoWeekStartStr(new Date()));
       render();
       setStatus('', 'Dados carregados.');
+      dbCaptureWeeklySnapshot();
       return true;
     } catch(e){
       setStatus('err', 'Erro ao carregar dados: ' + e.message);
       return false;
+    }
+  }
+
+  // --- Evolução semanal: fotografia dos indicadores de cada projeto, uma vez por semana ---
+  function isoWeekStartStr(d){
+    const date = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+    const day = (date.getDay() + 6) % 7; // Segunda = 0 ... Domingo = 6
+    date.setDate(date.getDate() - day);
+    const y = date.getFullYear(), m = String(date.getMonth() + 1).padStart(2, '0'), dd = String(date.getDate()).padStart(2, '0');
+    return `${y}-${m}-${dd}`;
+  }
+
+  async function dbLoadBaseline(weekStart){
+    if(!dbReady()) return {};
+    try{
+      const { data, error } = await sb.from('project_snapshots')
+        .select('project_id, week_start, estado, taxa_projeto, taxa_financeira, investimento_total')
+        .lt('week_start', weekStart)
+        .order('week_start', { ascending: false })
+        .limit(2000);
+      if(error) throw new Error(error.message);
+      const map = {};
+      for(const row of data){
+        if(!map[row.project_id]) map[row.project_id] = row;
+      }
+      return map;
+    } catch(e){
+      return {};
+    }
+  }
+
+  async function dbCaptureWeeklySnapshot(){
+    if(!dbReady() || !state.projects.length) return;
+    const weekStart = isoWeekStartStr(new Date());
+    const rows = state.projects.map(p => ({
+      project_id: p.id, week_start: weekStart,
+      estado: p.estado, taxa_projeto: p.taxaProjeto, taxa_financeira: p.taxaFinanceira,
+      investimento_total: p.investimentoTotal,
+    }));
+    try{
+      await sb.from('project_snapshots').upsert(rows, { onConflict: 'project_id,week_start' });
+    } catch(e){
+      // Não crítico — a variação semanal fica só por preencher.
     }
   }
 
@@ -706,6 +760,7 @@
       state.projects = imported;
       render();
       await dbReplaceAll(imported);
+      dbCaptureWeeklySnapshot();
       setStatus('', `${imported.length} projeto(s) importado(s) do Excel.`);
     } catch(err){
       setStatus('err', 'Erro ao importar Excel: ' + err.message);
@@ -765,27 +820,72 @@
     return '€' + Number(v).toLocaleString('pt-PT', { maximumFractionDigits: 0 });
   }
 
+  function fmtDatePt(isoDateStr){
+    if(!isoDateStr) return '';
+    const [y, m, d] = isoDateStr.split('-');
+    return `${d}/${m}/${y}`;
+  }
+
+  function deltaBadgeHtml(diff, opts = {}){
+    if(diff === null || diff === undefined || Number.isNaN(diff)) return '';
+    const { decimals = 0, invert = false, unit = '', formatter } = opts;
+    const rounded = Number(diff.toFixed(decimals));
+    if(rounded === 0) return '';
+    const positive = rounded > 0;
+    const good = invert ? !positive : positive;
+    const arrow = positive ? '▲' : '▼';
+    const sign = positive ? '+' : '−';
+    const text = formatter ? formatter(Math.abs(rounded)) : `${Math.abs(rounded)}${unit}`;
+    return ` <span class="delta ${good ? 'up' : 'down'}">${arrow} ${sign}${text}</span>`;
+  }
+
   function renderSummary(list){
-    $.sumExecucao.textContent = list.filter(p => p.estado === 'em_execucao').length;
-    $.sumConcluidos.textContent = list.filter(p => p.estado === 'concluido').length;
-    $.sumAtraso.textContent = list.filter(p => p.estado === 'em_atraso').length;
+    const baseline = state.baseline || {};
+    const showCountDeltas = state.filter === 'todos' && list.some(p => baseline[p.id]);
+
+    const nExec = list.filter(p => p.estado === 'em_execucao').length;
+    const nConcl = list.filter(p => p.estado === 'concluido').length;
+    const nAtr = list.filter(p => p.estado === 'em_atraso').length;
+    $.sumExecucao.innerHTML = nExec + (showCountDeltas ? deltaBadgeHtml(nExec - list.filter(p => baseline[p.id]?.estado === 'em_execucao').length) : '');
+    $.sumConcluidos.innerHTML = nConcl + (showCountDeltas ? deltaBadgeHtml(nConcl - list.filter(p => baseline[p.id]?.estado === 'concluido').length) : '');
+    $.sumAtraso.innerHTML = nAtr + (showCountDeltas ? deltaBadgeHtml(nAtr - list.filter(p => baseline[p.id]?.estado === 'em_atraso').length, { invert: true }) : '');
 
     const withTaxaP = list.filter(p => typeof p.taxaProjeto === 'number');
     const avgTaxaP = withTaxaP.length ? withTaxaP.reduce((s,p) => s + p.taxaProjeto, 0) / withTaxaP.length : 0;
-    $.sumTaxaProjeto.textContent = avgTaxaP.toFixed(0) + '%';
+    const matchedP = withTaxaP.filter(p => typeof baseline[p.id]?.taxa_projeto === 'number');
+    const deltaP = matchedP.length
+      ? deltaBadgeHtml(matchedP.reduce((s,p) => s + p.taxaProjeto, 0) / matchedP.length - matchedP.reduce((s,p) => s + baseline[p.id].taxa_projeto, 0) / matchedP.length, { unit: ' pts' })
+      : '';
+    $.sumTaxaProjeto.innerHTML = avgTaxaP.toFixed(0) + '%' + deltaP;
 
     const totalInvest = list.reduce((s,p) => s + (typeof p.investimentoTotal === 'number' ? p.investimentoTotal : 0), 0);
-    $.sumInvestimento.textContent = fmtEuro(totalInvest);
+    const matchedInv = list.filter(p => typeof p.investimentoTotal === 'number' && typeof baseline[p.id]?.investimento_total === 'number');
+    const deltaInv = matchedInv.length
+      ? deltaBadgeHtml(matchedInv.reduce((s,p) => s + p.investimentoTotal, 0) - matchedInv.reduce((s,p) => s + baseline[p.id].investimento_total, 0), { formatter: fmtEuro })
+      : '';
+    $.sumInvestimento.innerHTML = fmtEuro(totalInvest) + deltaInv;
 
     const withTaxaF = list.filter(p => typeof p.taxaFinanceira === 'number');
     const avgTaxaF = withTaxaF.length ? withTaxaF.reduce((s,p) => s + p.taxaFinanceira, 0) / withTaxaF.length : 0;
-    $.sumTaxaFin.textContent = avgTaxaF.toFixed(0) + '%';
+    const matchedF = withTaxaF.filter(p => typeof baseline[p.id]?.taxa_financeira === 'number');
+    const deltaF = matchedF.length
+      ? deltaBadgeHtml(matchedF.reduce((s,p) => s + p.taxaFinanceira, 0) / matchedF.length - matchedF.reduce((s,p) => s + baseline[p.id].taxa_financeira, 0) / matchedF.length, { unit: ' pts' })
+      : '';
+    $.sumTaxaFin.innerHTML = avgTaxaF.toFixed(0) + '%' + deltaF;
+
+    const baselineDates = Object.values(baseline).map(r => r.week_start).filter(Boolean);
+    $.deltaNote.textContent = baselineDates.length
+      ? `Variações face a ${fmtDatePt(baselineDates.reduce((a, b) => b > a ? b : a))}.`
+      : '';
   }
 
   function cardHtml(p){
     const color = ESTADO_COLOR[p.estado] || 'normal';
     const taxaP = typeof p.taxaProjeto === 'number' ? p.taxaProjeto : null;
     const taxaF = typeof p.taxaFinanceira === 'number' ? p.taxaFinanceira : null;
+    const base = state.baseline[p.id];
+    const deltaP = (taxaP !== null && typeof base?.taxa_projeto === 'number') ? deltaBadgeHtml(taxaP - base.taxa_projeto, { unit: ' pts' }) : '';
+    const deltaF = (taxaF !== null && typeof base?.taxa_financeira === 'number') ? deltaBadgeHtml(taxaF - base.taxa_financeira, { unit: ' pts' }) : '';
 
     return `
       <div class="card">
@@ -801,11 +901,11 @@
 
           <div class="metrics-row">
             <div>
-              <div class="metric-head"><span>Execução do projeto</span><span class="val ${color}">${taxaP !== null ? taxaP + '%' : '—'}</span></div>
+              <div class="metric-head"><span>Execução do projeto</span><span class="val-group"><span class="val ${color}">${taxaP !== null ? taxaP + '%' : '—'}</span>${deltaP}</span></div>
               <div class="bar"><div class="bar-fill ${color}" style="width:${taxaP || 0}%"></div></div>
             </div>
             <div>
-              <div class="metric-head"><span>Execução financeira</span><span class="val ${color}">${taxaF !== null ? taxaF + '%' : '—'}</span></div>
+              <div class="metric-head"><span>Execução financeira</span><span class="val-group"><span class="val ${color}">${taxaF !== null ? taxaF + '%' : '—'}</span>${deltaF}</span></div>
               <div class="bar"><div class="bar-fill ${color}" style="width:${taxaF || 0}%"></div></div>
             </div>
           </div>
@@ -856,7 +956,7 @@
 
     const hasAlert = scope.some(p => p.estado === 'em_atraso' || (p.riscos && p.riscos.trim()));
     $.execSummary.classList.toggle('has-alert', hasAlert);
-    const paragraphs = buildExecutiveSummaryParagraphs(scope);
+    const paragraphs = buildExecutiveSummaryParagraphs(scope, state.baseline);
     $.execSummary.innerHTML = `<h2>${escapeHtml(title)}</h2>` + paragraphs.map(p => `<p>${escapeHtml(p)}</p>`).join('');
   }
 
@@ -1010,7 +1110,37 @@
     return arr.slice(0, -1).join(', ') + ' e ' + arr[arr.length - 1];
   }
 
-  function buildExecutiveSummaryParagraphs(all){
+  function buildEvolutionParagraph(all, baseline){
+    if(!baseline || !Object.keys(baseline).length) return null;
+    const matched = all.filter(p => baseline[p.id]);
+    if(!matched.length) return null;
+
+    const baselineDate = Object.values(baseline).reduce((max, r) => r.week_start > max ? r.week_start : max, '');
+    const sentences = [];
+
+    const matchedP = matched.filter(p => typeof p.taxaProjeto === 'number' && typeof baseline[p.id].taxa_projeto === 'number');
+    if(matchedP.length){
+      const avgNow = matchedP.reduce((s, p) => s + p.taxaProjeto, 0) / matchedP.length;
+      const avgBefore = matchedP.reduce((s, p) => s + baseline[p.id].taxa_projeto, 0) / matchedP.length;
+      const d = Number((avgNow - avgBefore).toFixed(0)); // mesmo arredondamento que deltaBadgeHtml, para não contradizer os quadradinhos
+      sentences.push(d === 0
+        ? `Face a ${fmtDatePt(baselineDate)}, a taxa média de execução manteve-se estável.`
+        : `Face a ${fmtDatePt(baselineDate)}, a taxa média de execução ${d > 0 ? 'subiu' : 'desceu'} ${Math.abs(d)} ponto${Math.abs(d) !== 1 ? 's' : ''} percentua${Math.abs(d) !== 1 ? 'is' : 'l'}.`);
+    }
+
+    const newAtraso = matched.filter(p => p.estado === 'em_atraso' && baseline[p.id].estado !== 'em_atraso');
+    if(newAtraso.length){
+      sentences.push(`${fmtList(newAtraso.map(p => p.nome))} entr${newAtraso.length > 1 ? 'aram' : 'ou'} em atraso desde então.`);
+    }
+    const recovered = matched.filter(p => p.estado !== 'em_atraso' && baseline[p.id].estado === 'em_atraso');
+    if(recovered.length){
+      sentences.push(`${fmtList(recovered.map(p => p.nome))} sa${recovered.length > 1 ? 'íram' : 'iu'} do atraso desde então.`);
+    }
+
+    return sentences.length ? sentences.join(' ') : null;
+  }
+
+  function buildExecutiveSummaryParagraphs(all, baseline = {}){
     const nExecucao = all.filter(p => p.estado === 'em_execucao').length;
     const nConcluido = all.filter(p => p.estado === 'concluido').length;
     const nAtraso = all.filter(p => p.estado === 'em_atraso').length;
@@ -1069,7 +1199,7 @@
       ? `Nota: particular atenção deverá ser dada ${attentionParts.join(', bem como ')}.`
       : 'Nota: não se identificam, nesta atualização, projetos que requeiram atenção particular ao nível da execução.';
 
-    return [p1, p2, p3];
+    return [p1, buildEvolutionParagraph(all, baseline), p2, p3].filter(Boolean);
   }
 
   function addExecutiveSummarySlide(pres, all, PAGE_W, PAGE_H, MARGIN){
@@ -1081,7 +1211,7 @@
 
     const boxY = 1.5, boxH = PAGE_H - boxY - 0.5;
     slide.addShape(pres.ShapeType.roundRect, { x: MARGIN, y: boxY, w: PAGE_W - MARGIN * 2, h: boxH, rectRadius: 0.06, fill: { color: PPT_COLOR.card }, line: { color: PPT_COLOR.line, width: 0.75 } });
-    slide.addText(buildExecutiveSummaryParagraphs(all).join('\n\n'), {
+    slide.addText(buildExecutiveSummaryParagraphs(all, state.baseline).join('\n\n'), {
       x: MARGIN + 0.35, y: boxY + 0.25, w: PAGE_W - MARGIN * 2 - 0.7, h: boxH - 0.5,
       fontSize: 14, color: PPT_COLOR.ink, fontFace: 'Overpass', valign: 'top', lineSpacingMultiple: 1.3, shrinkText: true,
     });
