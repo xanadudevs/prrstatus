@@ -60,6 +60,7 @@
   }
   .toolbar button:hover{ opacity: .85; }
   .toolbar button:disabled{ background: var(--line); cursor: not-allowed; }
+  .toolbar button.secondary{ background: var(--card); color: var(--ink); border: 1px solid var(--line); }
 
   .status-msg{ font-size: 12.5px; color: var(--ink-soft); font-weight: 600; min-height: 18px; }
   .status-msg.err{ color: var(--risco); }
@@ -215,6 +216,15 @@
   .modal-actions button{ padding: 9px 18px; border-radius: 8px; font-size: 13px; font-weight: 700; border: 1px solid var(--ink); background: var(--ink); color: #fff; cursor: pointer; }
   .modal-actions button.secondary{ background: none; color: var(--ink); }
 
+  .notes-modal{ max-width: 640px; }
+  .notes-head{ display:flex; align-items:center; justify-content:space-between; gap: 12px; margin-bottom: 4px; }
+  .notes-head h2{ margin: 0; }
+  .notes-head .secondary{ padding: 7px 14px; border-radius: 8px; font-size: 12.5px; font-weight: 700; border: 1px solid var(--line); background: var(--card); color: var(--ink); cursor: pointer; flex-shrink: 0; }
+  .notes-date{ font-size: 12px; color: var(--ink-soft); font-weight: 600; margin: 0 0 18px; }
+  .notes-modal h3{ font-size: 14.5px; font-weight: 800; margin: 20px 0 6px; }
+  .notes-modal p{ font-size: 13.5px; color: var(--ink); line-height: 1.6; margin: 0 0 4px; }
+  .notes-modal code{ background: var(--bg); border-radius: 4px; padding: 1px 5px; font-size: 12.5px; }
+
   @media (max-width: 900px){ .summary{ grid-template-columns: 1fr 1fr 1fr; } }
   @media (max-width: 640px){
     .summary{ grid-template-columns: 1fr 1fr; }
@@ -240,6 +250,7 @@
       <input type="file" id="importExcelInput" accept=".xlsx,.xls" style="display:none">
       <button id="exportExcelBtn">Exportar Excel</button>
       <button id="exportPptxBtn">Exportar PowerPoint</button>
+      <button id="releaseNotesBtn" class="secondary">Novidades</button>
     </div>
   </header>
   <p class="status-msg" id="statusMsg"></p>
@@ -299,6 +310,35 @@
       <button id="saveProjectBtn">Guardar</button>
       <button class="secondary" id="cancelModal">Cancelar</button>
     </div>
+  </div>
+</div>
+
+<div class="overlay" id="notesOverlay">
+  <div class="modal notes-modal">
+    <div class="notes-head">
+      <h2>Novidades no Painel PRR</h2>
+      <button class="secondary" id="closeNotes">Fechar</button>
+    </div>
+    <p class="notes-date">25/09/2026</p>
+    <p>O Painel PRR ganhou várias novidades nas últimas semanas — gestão de projetos individual, um resumo executivo automático (agora organizado por coordenação), evolução semana a semana, e dois campos novos por projeto (Destaques e Risco %). Está tudo já em produção, sem passos adicionais para quem usa o painel.</p>
+
+    <h3>Gestão de projetos</h3>
+    <p>O botão <b>+ Novo projeto</b> está de volta: dá para criar e editar projetos um a um, sem ter de reimportar um Excel completo sempre que surge um projeto novo. Continua a não haver botão de remover — para tirar um projeto da lista, importa-se um Excel atualizado sem esse projeto.</p>
+
+    <h3>Importar / Exportar Excel</h3>
+    <p>O botão <b>Importar Excel</b> continua a substituir todos os projetos pelos do ficheiro (pede confirmação, por ser destrutivo) — agora já reconhece as colunas novas <b>Destaques</b> e <b>Risco (%)</b>, além das habituais. O botão <b>Exportar Excel</b> gera uma cópia no mesmo formato, útil como salvaguarda antes de reimportar ou só para ter os dados fora do painel.</p>
+
+    <h3>Exportação para PowerPoint</h3>
+    <p>O botão <b>Exportar PowerPoint</b> gera um <code>.pptx</code> com um slide de <b>Sumário Executivo</b> (texto gerado automaticamente + uma caixa-resumo por coordenação), um slide de visão global para a Direção, e um slide por coordenação com um cartão por projeto. Cada cartão mostra as barras de execução física e financeira, e caixas de Destaques, Dependências, Riscos (com a % de risco) e Próximos Passos. O logótipo da SPMS aparece no cabeçalho de todos os slides.</p>
+
+    <h3>Filtro por Coordenação e Resumo Executivo</h3>
+    <p>Passou a existir um filtro por coordenação (UIA, UPACE, UID, URN, ...), que se combina com o filtro por estado já existente. Os números do topo (em execução, concluídos, em atraso, taxas, investimento) passam a refletir os filtros ativos, em vez de mostrarem sempre o total global. Uma caixa de <b>Alertas para a Direção</b> (ou <b>Resumo Executivo — [Coordenação]</b>, quando filtrado) mostra um texto gerado automaticamente com o nível de execução, heterogeneidade entre projetos e pontos que precisam de atenção.</p>
+
+    <h3>Evolução semanal</h3>
+    <p>O painel passa a comparar os valores atuais com os da semana anterior: os números do topo, as barras de cada cartão e o próprio resumo executivo mostram a variação (ex: "74% ▲ +4 pts"). A comparação é sempre feita em relação ao fim da semana anterior — há uma tarefa agendada no Supabase que grava a fotografia oficial todas as sextas-feiras às 23h, independentemente de alguém ter a página aberta nessa altura.</p>
+
+    <h3>Destaques e % de Risco</h3>
+    <p>Cada projeto ganhou dois campos novos: <b>Destaques</b> (texto livre, tal como Riscos) e <b>Risco (%)</b> — uma percentagem de 0 a 100. Projetos com risco ≥50% passam a ser referidos automaticamente na nota de atenção do resumo executivo, e os destaques registados aparecem num parágrafo dedicado. Na vista da Direção (sem filtro de coordenação), o resumo passa a estar organizado por coordenação: uma caixa por coordenação com uma frase-resumo, destacada a vermelho quando há algo a assinalar.</p>
   </div>
 </div>
 
@@ -461,6 +501,7 @@
     mInvestimento: el('mInvestimento'), mDestaques: el('mDestaques'), mDependencias: el('mDependencias'),
     mRiscoPct: el('mRiscoPct'), mRiscos: el('mRiscos'), mProximosPassos: el('mProximosPassos'),
     saveProjectBtn: el('saveProjectBtn'), cancelModal: el('cancelModal'),
+    releaseNotesBtn: el('releaseNotesBtn'), notesOverlay: el('notesOverlay'), closeNotes: el('closeNotes'),
     sumExecucao: el('sumExecucao'), sumConcluidos: el('sumConcluidos'), sumAtraso: el('sumAtraso'),
     sumTaxaProjeto: el('sumTaxaProjeto'), sumInvestimento: el('sumInvestimento'), sumTaxaFin: el('sumTaxaFin'),
     importExcelBtn: el('importExcelBtn'), importExcelInput: el('importExcelInput'),
@@ -505,6 +546,10 @@
   $.addProjectBtn.addEventListener('click', () => openModal());
   $.cancelModal.addEventListener('click', closeModal);
   $.overlay.addEventListener('click', (e) => { if(e.target === $.overlay) closeModal(); });
+
+  $.releaseNotesBtn.addEventListener('click', () => $.notesOverlay.classList.add('open'));
+  $.closeNotes.addEventListener('click', () => $.notesOverlay.classList.remove('open'));
+  $.notesOverlay.addEventListener('click', (e) => { if(e.target === $.notesOverlay) $.notesOverlay.classList.remove('open'); });
 
   $.saveProjectBtn.addEventListener('click', async () => {
     const nome = $.mNome.value.trim();
