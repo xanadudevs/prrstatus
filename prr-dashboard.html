@@ -105,6 +105,17 @@
   .exec-summary p:last-child{ margin-bottom: 0; }
   .exec-summary .exec-empty{ color: var(--ink-soft); font-style: italic; }
 
+  .coord-boxes{
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px;
+    margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--line);
+  }
+  .coord-box{ background: var(--bg); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; }
+  .coord-box.has-alert{ background: var(--risco-bg); border-color: transparent; }
+  .coord-box-title{ font-size: 11.5px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.03em; margin-bottom: 4px; color: var(--ink); }
+  .coord-box.has-alert .coord-box-title{ color: var(--risco); }
+  .coord-box-text{ font-size: 12.5px; color: var(--ink-soft); line-height: 1.45; }
+  .coord-box.has-alert .coord-box-text{ color: var(--ink); }
+
   /* Category groups */
   .category-group{ margin-bottom: 36px; }
   .category-title{
@@ -169,6 +180,13 @@
   .riscos-box.concluido .label{ color: var(--concluido); }
   .riscos-box .txt{ font-size: 13px; font-weight: 700; color: var(--ink); line-height: 1.45; white-space: pre-line; }
   .riscos-box .txt.empty{ font-weight: 500; font-style: italic; opacity: .6; }
+  .riscos-box .risco-pct{ font-weight: 800; }
+  .riscos-box .risco-pct.high{ color: var(--risco); }
+
+  .destaques-box{ border-radius: 10px; padding: 12px 14px; margin-bottom: 12px; background: var(--concluido-bg); }
+  .destaques-box .label{ font-size: 10.5px; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 5px; color: var(--concluido); }
+  .destaques-box .txt{ font-size: 13px; font-weight: 700; color: var(--ink); line-height: 1.45; white-space: pre-line; }
+  .destaques-box .txt.empty{ font-weight: 500; font-style: italic; opacity: .6; }
 
   .detail-row{ font-size: 12.5px; color: var(--ink-soft); margin-bottom: 8px; line-height: 1.5; }
   .detail-row b{ color: var(--ink); font-weight: 700; }
@@ -271,7 +289,9 @@
       <div><label for="mTaxaProjeto">Taxa de execução do projeto (%)</label><input id="mTaxaProjeto" type="number" min="0" max="100" step="1"></div>
       <div><label for="mTaxaFinanceira">Taxa de execução financeira (%)</label><input id="mTaxaFinanceira" type="number" min="0" max="100" step="1"></div>
       <div class="full"><label for="mInvestimento">Investimento total (€)</label><input id="mInvestimento" type="number" min="0" step="0.01"></div>
+      <div class="full"><label for="mDestaques">Destaques</label><textarea id="mDestaques"></textarea></div>
       <div class="full"><label for="mDependencias">Dependências</label><textarea id="mDependencias"></textarea></div>
+      <div><label for="mRiscoPct">Risco (%)</label><input id="mRiscoPct" type="number" min="0" max="100" step="1"></div>
       <div class="full"><label for="mRiscos">Riscos</label><textarea id="mRiscos"></textarea></div>
       <div class="full"><label for="mProximosPassos">Próximos Passos</label><textarea id="mProximosPassos"></textarea></div>
     </div>
@@ -438,8 +458,8 @@
     overlay: el('overlay'), modalTitle: el('modalTitle'),
     mNome: el('mNome'), mUnidade: el('mUnidade'), mFicha: el('mFicha'), mEstado: el('mEstado'),
     mGestor: el('mGestor'), mTaxaProjeto: el('mTaxaProjeto'), mTaxaFinanceira: el('mTaxaFinanceira'),
-    mInvestimento: el('mInvestimento'), mDependencias: el('mDependencias'), mRiscos: el('mRiscos'),
-    mProximosPassos: el('mProximosPassos'),
+    mInvestimento: el('mInvestimento'), mDestaques: el('mDestaques'), mDependencias: el('mDependencias'),
+    mRiscoPct: el('mRiscoPct'), mRiscos: el('mRiscos'), mProximosPassos: el('mProximosPassos'),
     saveProjectBtn: el('saveProjectBtn'), cancelModal: el('cancelModal'),
     sumExecucao: el('sumExecucao'), sumConcluidos: el('sumConcluidos'), sumAtraso: el('sumAtraso'),
     sumTaxaProjeto: el('sumTaxaProjeto'), sumInvestimento: el('sumInvestimento'), sumTaxaFin: el('sumTaxaFin'),
@@ -473,7 +493,9 @@
     $.mTaxaProjeto.value = project?.taxaProjeto ?? '';
     $.mTaxaFinanceira.value = project?.taxaFinanceira ?? '';
     $.mInvestimento.value = project?.investimentoTotal ?? '';
+    $.mDestaques.value = project?.destaques || '';
     $.mDependencias.value = project?.dependencias || '';
+    $.mRiscoPct.value = project?.riscoPct ?? '';
     $.mRiscos.value = project?.riscos || '';
     $.mProximosPassos.value = project?.proximosPassos || '';
     $.overlay.classList.add('open');
@@ -491,6 +513,7 @@
     const taxaP = $.mTaxaProjeto.value === '' ? null : Math.min(100, Math.max(0, parseFloat($.mTaxaProjeto.value)));
     const taxaF = $.mTaxaFinanceira.value === '' ? null : Math.min(100, Math.max(0, parseFloat($.mTaxaFinanceira.value)));
     const invest = $.mInvestimento.value === '' ? null : parseFloat($.mInvestimento.value);
+    const riscoPct = $.mRiscoPct.value === '' ? null : Math.min(100, Math.max(0, parseFloat($.mRiscoPct.value)));
 
     const record = {
       id: state.editingId || generateProjectId(nome),
@@ -502,7 +525,9 @@
       taxaProjeto: taxaP,
       taxaFinanceira: taxaF,
       investimentoTotal: invest,
+      destaques: $.mDestaques.value.trim(),
       dependencias: $.mDependencias.value.trim(),
+      riscoPct: riscoPct,
       riscos: $.mRiscos.value.trim(),
       proximosPassos: $.mProximosPassos.value.trim(),
       updatedAt: new Date().toISOString()
@@ -535,7 +560,8 @@
       id: row.id, nome: row.nome, unidade: row.unidade || '', ficha: row.ficha || '',
       estado: row.estado, gestor: row.gestor || '',
       taxaProjeto: row.taxa_projeto, taxaFinanceira: row.taxa_financeira, investimentoTotal: row.investimento_total,
-      dependencias: row.dependencias || '', riscos: row.riscos || '', proximosPassos: row.proximos_passos || '',
+      destaques: row.destaques || '', dependencias: row.dependencias || '',
+      riscoPct: row.risco_pct, riscos: row.riscos || '', proximosPassos: row.proximos_passos || '',
       updatedAt: row.updated_at,
     };
   }
@@ -544,7 +570,8 @@
       id: p.id, nome: p.nome, unidade: p.unidade || null, ficha: p.ficha || null,
       estado: p.estado, gestor: p.gestor || null,
       taxa_projeto: p.taxaProjeto, taxa_financeira: p.taxaFinanceira, investimento_total: p.investimentoTotal,
-      dependencias: p.dependencias || null, riscos: p.riscos || null, proximos_passos: p.proximosPassos || null,
+      destaques: p.destaques || null, dependencias: p.dependencias || null,
+      risco_pct: p.riscoPct, riscos: p.riscos || null, proximos_passos: p.proximosPassos || null,
       updated_at: p.updatedAt,
     };
   }
@@ -687,7 +714,9 @@
     { field: 'taxaProjeto', test: k => k.includes('taxa') && k.includes('execu') && k.includes('projeto') },
     { field: 'investimentoTotal', test: k => k.includes('investimento') },
     { field: 'taxaFinanceira', test: k => k.includes('taxa') && k.includes('financeira') },
+    { field: 'destaques', test: k => k.includes('destaque') },
     { field: 'dependencias', test: k => k.includes('dependenc') },
+    { field: 'riscoPct', test: k => k.includes('risco') && (k.includes('%') || k.includes('percent')) },
     { field: 'riscos', test: k => k.includes('risco') },
     { field: 'proximosPassos', test: k => k.includes('proximos') && k.includes('passos') },
     { field: 'gestor', test: k => k.includes('gestor') },
@@ -731,7 +760,9 @@
         taxaProjeto: colMap.taxaProjeto !== undefined ? toPercent(row[colMap.taxaProjeto]) : null,
         taxaFinanceira: colMap.taxaFinanceira !== undefined ? toPercent(row[colMap.taxaFinanceira]) : null,
         investimentoTotal: colMap.investimentoTotal !== undefined ? toNumber(row[colMap.investimentoTotal]) : null,
+        destaques: colMap.destaques !== undefined ? (row[colMap.destaques] || '').toString().trim() : '',
         dependencias: colMap.dependencias !== undefined ? (row[colMap.dependencias] || '').toString().trim() : '',
+        riscoPct: colMap.riscoPct !== undefined ? toPercent(row[colMap.riscoPct]) : null,
         riscos: colMap.riscos !== undefined ? (row[colMap.riscos] || '').toString().trim() : '',
         proximosPassos: colMap.proximosPassos !== undefined ? (row[colMap.proximosPassos] || '').toString().trim() : '',
         updatedAt: new Date().toISOString(),
@@ -770,7 +801,7 @@
   const EXCEL_EXPORT_HEADERS = [
     'Unidade', 'N. Ficha Projecto', 'Nome do Projetos', 'Estado', 'Gestor de Projeto',
     'Taxa de execução projeto', 'Investimento total', 'Taxa de execução financeira',
-    'Dependências', 'Riscos', 'Próximos Passos',
+    'Destaques', 'Dependências', 'Risco (%)', 'Riscos', 'Próximos Passos',
   ];
 
   $.exportExcelBtn.addEventListener('click', () => {
@@ -783,7 +814,9 @@
       typeof p.taxaProjeto === 'number' ? p.taxaProjeto : '',
       typeof p.investimentoTotal === 'number' ? p.investimentoTotal : '',
       typeof p.taxaFinanceira === 'number' ? p.taxaFinanceira : '',
-      p.dependencias || '', p.riscos || '', p.proximosPassos || '',
+      p.destaques || '', p.dependencias || '',
+      typeof p.riscoPct === 'number' ? p.riscoPct : '',
+      p.riscos || '', p.proximosPassos || '',
     ])];
     const ws = XLSX.utils.aoa_to_sheet(rows);
     const wb = XLSX.utils.book_new();
@@ -912,8 +945,13 @@
 
           <div class="investimento"><span class="label">Investimento total</span>${fmtEuro(p.investimentoTotal)}</div>
 
+          <div class="destaques-box">
+            <div class="label">Destaques</div>
+            <div class="txt ${p.destaques ? '' : 'empty'}">${p.destaques ? escapeHtml(p.destaques) : 'Sem destaques registados.'}</div>
+          </div>
+
           <div class="riscos-box ${color}">
-            <div class="label">Riscos</div>
+            <div class="label">Riscos${typeof p.riscoPct === 'number' ? ` · <span class="risco-pct${p.riscoPct >= 50 ? ' high' : ''}">${p.riscoPct}%</span>` : ''}</div>
             <div class="txt ${p.riscos ? '' : 'empty'}">${p.riscos ? escapeHtml(p.riscos) : 'Sem riscos registados.'}</div>
           </div>
 
@@ -954,10 +992,24 @@
       return;
     }
 
-    const hasAlert = scope.some(p => p.estado === 'em_atraso' || (p.riscos && p.riscos.trim()));
+    const hasAlert = scope.some(p => p.estado === 'em_atraso' || (p.riscos && p.riscos.trim()) || (typeof p.riscoPct === 'number' && p.riscoPct >= 50));
     $.execSummary.classList.toggle('has-alert', hasAlert);
     const paragraphs = buildExecutiveSummaryParagraphs(scope, state.baseline);
-    $.execSummary.innerHTML = `<h2>${escapeHtml(title)}</h2>` + paragraphs.map(p => `<p>${escapeHtml(p)}</p>`).join('');
+    let html = `<h2>${escapeHtml(title)}</h2>` + paragraphs.map(p => `<p>${escapeHtml(p)}</p>`).join('');
+
+    if(state.unidadeFilter === 'todas'){
+      const boxes = buildCoordenacaoBoxes(scope);
+      if(boxes.length){
+        html += `<div class="coord-boxes">` + boxes.map(b => `
+          <div class="coord-box ${b.hasAlert ? 'has-alert' : ''}">
+            <div class="coord-box-title">${escapeHtml(b.unidade)}</div>
+            <div class="coord-box-text">${escapeHtml(b.sentence)}</div>
+          </div>
+        `).join('') + `</div>`;
+      }
+    }
+
+    $.execSummary.innerHTML = html;
   }
 
   function render(){
@@ -1083,7 +1135,7 @@
     const boxY = y + 0.14;
     const boxH = h - 0.28;
     const boxGap = 0.1;
-    const sectionH = (boxH - boxGap * 2) / 3;
+    const sectionH = (boxH - boxGap * 3) / 4;
 
     const INFO_FONT_SIZE = 10.5;
     const infoTextW = boxW - 0.24;
@@ -1099,9 +1151,11 @@
       slide.addText(truncateText(text, INFO_TEXT_MAX_CHARS), { x: boxX + 0.12, y: boxTop + 0.25, w: infoTextW, h: infoTextH, fontSize: INFO_FONT_SIZE, color: PPT_COLOR.ink, fontFace: 'Overpass', valign: 'top', shrinkText: true });
     }
 
-    drawInfoBox('DEPENDÊNCIAS', p.dependencias || 'Sem dependências registadas.', boxY, { bg: PPT_COLOR.card, line: { color: PPT_COLOR.line, width: 0.75 }, labelColor: PPT_COLOR.inkSoft });
-    drawInfoBox('RISCOS', p.riscos || 'Sem riscos registados.', boxY + (sectionH + boxGap), { bg: hexBg, labelColor: hex });
-    drawInfoBox('PRÓXIMOS PASSOS', p.proximosPassos || 'Sem próximos passos registados.', boxY + 2 * (sectionH + boxGap), { bg: PPT_COLOR.card, line: { color: PPT_COLOR.line, width: 0.75 }, labelColor: PPT_COLOR.inkSoft });
+    const riscosLabel = 'RISCOS' + (typeof p.riscoPct === 'number' ? ` · ${p.riscoPct}%` : '');
+    drawInfoBox('DESTAQUES', p.destaques || 'Sem destaques registados.', boxY, { bg: PPT_COLOR.concluidoBg, labelColor: PPT_COLOR.concluido });
+    drawInfoBox('DEPENDÊNCIAS', p.dependencias || 'Sem dependências registadas.', boxY + (sectionH + boxGap), { bg: PPT_COLOR.card, line: { color: PPT_COLOR.line, width: 0.75 }, labelColor: PPT_COLOR.inkSoft });
+    drawInfoBox(riscosLabel, p.riscos || 'Sem riscos registados.', boxY + 2 * (sectionH + boxGap), { bg: hexBg, labelColor: hex });
+    drawInfoBox('PRÓXIMOS PASSOS', p.proximosPassos || 'Sem próximos passos registados.', boxY + 3 * (sectionH + boxGap), { bg: PPT_COLOR.card, line: { color: PPT_COLOR.line, width: 0.75 }, labelColor: PPT_COLOR.inkSoft });
   }
 
   function fmtList(arr){
@@ -1185,6 +1239,12 @@
       .slice(0, 3)
       .map(g => g.p);
 
+    const RISK_THRESHOLD = 50;
+    const highRiskProjects = all
+      .filter(p => typeof p.riscoPct === 'number' && p.riscoPct >= RISK_THRESHOLD)
+      .sort((a, b) => b.riscoPct - a.riscoPct)
+      .slice(0, 3);
+
     const attentionParts = [];
     if(lowProjects.length){
       const lowLabel = p => p.estado === 'em_atraso'
@@ -1195,11 +1255,40 @@
     if(gapProjects.length){
       attentionParts.push(`aos projetos com maior desfasamento entre execução física e financeira, nomeadamente ${fmtList(gapProjects.map(p => `${p.nome} (${p.taxaProjeto}% vs ${p.taxaFinanceira}%)`))}`);
     }
+    if(highRiskProjects.length){
+      attentionParts.push(`aos projetos com risco elevado (≥${RISK_THRESHOLD}%), nomeadamente ${fmtList(highRiskProjects.map(p => `${p.nome} (${p.riscoPct}%)`))}`);
+    }
     const p3 = attentionParts.length
       ? `Nota: particular atenção deverá ser dada ${attentionParts.join(', bem como ')}.`
       : 'Nota: não se identificam, nesta atualização, projetos que requeiram atenção particular ao nível da execução.';
 
-    return [p1, buildEvolutionParagraph(all, baseline), p2, p3].filter(Boolean);
+    const highlighted = all.filter(p => p.destaques && p.destaques.trim()).slice(0, 3);
+    const p4 = highlighted.length
+      ? `Destaques: ${highlighted.map(p => `${p.nome} — ${truncateText(p.destaques.trim(), 140).replace(/\.+$/, '')}`).join('; ')}.`
+      : null;
+
+    return [p1, buildEvolutionParagraph(all, baseline), p2, p3, p4].filter(Boolean);
+  }
+
+  function buildCoordenacaoBoxes(all){
+    const groups = groupByUnidade(all);
+    return Object.keys(groups).sort().map(key => {
+      const list = groups[key];
+      const execAvg = avgPct(list, 'taxaProjeto');
+      const nAtraso = list.filter(p => p.estado === 'em_atraso').length;
+      const highRisk = list.filter(p => typeof p.riscoPct === 'number' && p.riscoPct >= 50);
+      const withDestaques = list.filter(p => p.destaques && p.destaques.trim());
+
+      const notes = [];
+      if(nAtraso) notes.push(`${nAtraso} projeto${nAtraso > 1 ? 's' : ''} em atraso`);
+      if(highRisk.length) notes.push(`${highRisk.length} projeto${highRisk.length > 1 ? 's' : ''} com risco elevado (≥50%)`);
+      if(withDestaques.length) notes.push(`${withDestaques.length} destaque${withDestaques.length > 1 ? 's' : ''} registado${withDestaques.length > 1 ? 's' : ''}`);
+
+      const sentence = `${list.length} projeto${list.length !== 1 ? 's' : ''}, execução média de ${execAvg}%` +
+        (notes.length ? `; ${notes.join('; ')}.` : ', sem pontos de atenção.');
+
+      return { unidade: key, sentence, hasAlert: nAtraso > 0 || highRisk.length > 0 };
+    });
   }
 
   function addExecutiveSummarySlide(pres, all, PAGE_W, PAGE_H, MARGIN){
@@ -1209,12 +1298,38 @@
     slide.addText('Avaliação global — ' + new Date().toLocaleDateString('pt-PT'), { x: MARGIN, y: 0.92, w: 8, h: 0.35, fontSize: 12, color: PPT_COLOR.inkSoft, fontFace: 'Overpass' });
     slide.addImage({ data: SPMS_LOGO_DATA_URI, x: PAGE_W - MARGIN - 2.45, y: 0.35, w: 2.45, h: 0.45 });
 
-    const boxY = 1.5, boxH = PAGE_H - boxY - 0.5;
-    slide.addShape(pres.ShapeType.roundRect, { x: MARGIN, y: boxY, w: PAGE_W - MARGIN * 2, h: boxH, rectRadius: 0.06, fill: { color: PPT_COLOR.card }, line: { color: PPT_COLOR.line, width: 0.75 } });
+    const boxes = buildCoordenacaoBoxes(all);
+
+    const narrativeY = 1.45;
+    const narrativeH = boxes.length ? 3.1 : (PAGE_H - narrativeY - 0.5);
+    slide.addShape(pres.ShapeType.roundRect, { x: MARGIN, y: narrativeY, w: PAGE_W - MARGIN * 2, h: narrativeH, rectRadius: 0.06, fill: { color: PPT_COLOR.card }, line: { color: PPT_COLOR.line, width: 0.75 } });
     slide.addText(buildExecutiveSummaryParagraphs(all, state.baseline).join('\n\n'), {
-      x: MARGIN + 0.35, y: boxY + 0.25, w: PAGE_W - MARGIN * 2 - 0.7, h: boxH - 0.5,
-      fontSize: 14, color: PPT_COLOR.ink, fontFace: 'Overpass', valign: 'top', lineSpacingMultiple: 1.3, shrinkText: true,
+      x: MARGIN + 0.35, y: narrativeY + 0.22, w: PAGE_W - MARGIN * 2 - 0.7, h: narrativeH - 0.44,
+      fontSize: 13, color: PPT_COLOR.ink, fontFace: 'Overpass', valign: 'top', lineSpacingMultiple: 1.25, shrinkText: true,
     });
+
+    if(boxes.length){
+      slide.addText('POR COORDENAÇÃO', { x: MARGIN, y: narrativeY + narrativeH + 0.08, w: 6, h: 0.2, fontSize: 9, bold: true, color: PPT_COLOR.inkSoft, fontFace: 'Overpass' });
+
+      const gridY = narrativeY + narrativeH + 0.32;
+      const gridH = PAGE_H - gridY - 0.35;
+      const cols = boxes.length <= 3 ? boxes.length : (boxes.length <= 6 ? 3 : 4);
+      const rows = Math.ceil(boxes.length / cols);
+      const gap = 0.15;
+      const contentW = PAGE_W - MARGIN * 2;
+      const cellW = (contentW - gap * (cols - 1)) / cols;
+      const cellH = (gridH - gap * (rows - 1)) / rows;
+
+      boxes.forEach((b, i) => {
+        const col = i % cols, row = Math.floor(i / cols);
+        const x = MARGIN + col * (cellW + gap);
+        const y = gridY + row * (cellH + gap);
+        const bg = b.hasAlert ? PPT_COLOR.riscoBg : PPT_COLOR.card;
+        slide.addShape(pres.ShapeType.roundRect, { x, y, w: cellW, h: cellH, rectRadius: 0.05, fill: { color: bg }, line: b.hasAlert ? { type: 'none' } : { color: PPT_COLOR.line, width: 0.75 } });
+        slide.addText(b.unidade, { x: x + 0.12, y: y + 0.08, w: cellW - 0.24, h: 0.2, fontSize: 9.5, bold: true, color: b.hasAlert ? PPT_COLOR.risco : PPT_COLOR.ink, fontFace: 'Overpass' });
+        slide.addText(b.sentence, { x: x + 0.12, y: y + 0.30, w: cellW - 0.24, h: cellH - 0.4, fontSize: 8.5, color: PPT_COLOR.inkSoft, fontFace: 'Overpass', valign: 'top', shrinkText: true });
+      });
+    }
   }
 
   function addCoordenacaoSlide(pres, unidade, projects, page, totalPages, PAGE_W, PAGE_H, MARGIN){
