@@ -35,8 +35,7 @@ Como não há autenticação de utilizadores, a política de RLS usada aqui (ver
      investimento_total numeric,
      destaques text,
      dependencias text,
-     risco_pct numeric,
-     riscos text,
+     riscos_lista jsonb not null default '[]'::jsonb,
      proximos_passos text,
      updated_at timestamptz not null default now()
    );
@@ -74,6 +73,11 @@ Como não há autenticação de utilizadores, a política de RLS usada aqui (ver
    alter table projects add column if not exists destaques text;
    alter table projects add column if not exists risco_pct numeric;
    ```
+
+   **Se já tens a tabela `projects` criada mas ainda sem `riscos_lista`** (instalação anterior à lista de riscos individuais, com um único campo "Riscos" e uma única "Risco (%)"), corre isto para acrescentar a coluna nova — os dados antigos em `riscos`/`risco_pct` ficam intactos e continuam a aparecer no painel (o painel converte-os automaticamente para a lista na próxima vez que abrires ou editares o projeto), só não voltam a ser escritos:
+   ```sql
+   alter table projects add column if not exists riscos_lista jsonb not null default '[]'::jsonb;
+   ```
 3. Vai a **Project Settings → API** e copia o **Project URL** e a chave **`anon` `public`**.
 4. No `prr-dashboard.html`, procura estas duas linhas e substitui pelos valores copiados:
    ```js
@@ -88,6 +92,7 @@ Enquanto `SUPABASE_URL`/`SUPABASE_ANON_KEY` não estiverem preenchidos, o painel
 ## Fluxo de trabalho: importar em bloco ou gerir projeto a projeto
 
 1. **Carregar os dados em bloco** — botão **"Importar Excel"**, que lê um ficheiro no formato "Ponto de Situação Projeto PRR" (folha `PDS PRR`, com cabeçalhos como "Unidade", "N. Ficha Projecto", "Nome do Projetos", "Estado", "Taxa de execução projeto", "Investimento total", "Taxa de execução financeira", "Destaques", "Dependências", "Risco (%)", "Riscos", "Próximos Passos", "Gestor de Projeto") e substitui todos os projetos atuais pelos do ficheiro. As colunas "Destaques" e "Risco (%)" são opcionais — um ficheiro sem elas continua a importar normalmente, só ficam esses campos em branco.
+   - A coluna "Riscos" pode ter várias linhas (um risco por linha, dentro da mesma célula), cada uma opcionalmente terminada em "(NN%)" para indicar a percentagem desse risco — ex: `Atraso no fornecedor (40%)` numa linha e `Falta de recursos (20%)` na linha seguinte. Uma célula com uma só linha sem "(NN%)" é tratada como um único risco, usando a coluna "Risco (%)" à parte, tal como no formato original do ministério. Na exportação ("Exportar Excel"), o painel escreve sempre no formato multi-linha com "(NN%)", e a coluna "Risco (%)" passa a mostrar a percentagem mais alta entre os riscos do projeto.
    - As taxas podem vir em fração (`0.7`) ou já em percentagem (`70`) — o painel deteta automaticamente.
    - O campo "Estado" aceita as variações do Excel de origem ("em atraso", "em execução", "por iniciar"/"por inciar", "concluído") e mapeia para os quatro estados do painel.
    - Se o Supabase estiver configurado, a importação é logo gravada na base de dados; caso contrário fica só na sessão.
@@ -100,8 +105,8 @@ Enquanto `SUPABASE_URL`/`SUPABASE_ANON_KEY` não estiverem preenchidos, o painel
 - **Resumo no topo**: projetos em execução, concluídos, em atraso, taxa média de execução do projeto, investimento total, taxa média de execução financeira — recalculado consoante os filtros ativos (estado e coordenação), com a variação face à semana anterior ao lado de cada número (ver "Evolução semanal" abaixo).
 - **Filtros por estado**: em atraso, em execução, por iniciar, concluído.
 - **Filtros por coordenação**: gerados automaticamente a partir das unidades presentes nos dados (ex: UIA, UPACE, UID, URN). Combinam-se com o filtro de estado.
-- **Resumo executivo / alertas**: texto gerado automaticamente a partir dos dados atuais (nível de execução, evolução semanal, heterogeneidade, desfasamento física vs. financeira, projetos com menor execução/em atraso, projetos com risco ≥50%, destaques registados). Mostra "Alertas para a Direção" quando não há filtro de coordenação selecionado, ou "Resumo Executivo — [Coordenação]" quando se filtra por uma coordenação específica. Na vista da Direção, além do texto, aparece também uma caixa por coordenação com uma frase-resumo (execução média, projetos em atraso, risco elevado, destaques) — a caixa fica destacada a vermelho se houver algum ponto de atenção. É a mesma lógica usada no slide de sumário executivo do PowerPoint.
-- **Cartões agrupados por unidade** (UIA, UPACE, UID, URN), com ponto de cor por estado, barras de execução do projeto e financeira (cada uma com a respetiva variação semanal), investimento total, caixa de destaques e caixa de riscos (com a percentagem de risco, quando preenchida) em destaque.
+- **Resumo executivo / alertas**: texto gerado automaticamente a partir dos dados atuais (nível de execução, evolução semanal, heterogeneidade, desfasamento física vs. financeira, projetos com menor execução/em atraso, projetos com algum risco ≥50%, destaques registados). Mostra "Alertas para a Direção" quando não há filtro de coordenação selecionado, ou "Resumo Executivo — [Coordenação]" quando se filtra por uma coordenação específica. Na vista da Direção, além do texto, aparece também uma caixa por coordenação com uma frase-resumo (execução média, projetos em atraso, risco elevado, destaques) — a caixa fica destacada a vermelho se houver algum ponto de atenção. É a mesma lógica usada no slide de sumário executivo do PowerPoint.
+- **Cartões agrupados por unidade** (UIA, UPACE, UID, URN), com ponto de cor por estado, barras de execução do projeto e financeira (cada uma com a respetiva variação semanal), investimento total, caixa de destaques e caixa de riscos em destaque. Cada projeto pode ter **vários riscos**, cada um com a sua própria descrição e a sua própria percentagem — usa-se o botão "+ Adicionar risco" no formulário de edição para acrescentar linhas e o "×" para remover uma. No resumo executivo, no PowerPoint e na exportação Excel, o "Risco (%)" de um projeto é sempre a percentagem mais alta entre os seus riscos individuais.
 - **Exportar PowerPoint**: gera um `.pptx` (via PptxGenJS, no browser) com um slide de sumário executivo, um slide de visão global para a Direção e slides por unidade.
 
 ## Evolução semanal
