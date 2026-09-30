@@ -72,11 +72,13 @@
   .instructions{ background: var(--card); border: 1px solid var(--line); border-left: 4px solid var(--ink); border-radius: 12px; padding: 14px 18px; font-size: 13px; line-height: 1.55; margin: 14px 0 18px; }
   .instructions b{ font-weight: 800; }
 
-  .reporter{ display:flex; align-items:center; gap: 8px; font-size: 12.5px; font-weight: 700; color: var(--ink-soft); margin-bottom: 16px; flex-wrap: wrap; }
-  .reporter input{ border: 1px solid var(--line); border-radius: 7px; padding: 7px 10px; font-size: 13px; background: var(--card); color: var(--ink); min-width: 220px; }
 
   /* Summary */
-  .summary{ display: grid; grid-template-columns: repeat(6, 1fr); gap: 12px; margin-bottom: 18px; }
+  .summary{ display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 18px; }
+  .summary .tile.fin{ background: #FBFCFE; }
+  .summary .tile .sub{ font-size: 11.5px; font-weight: 700; color: var(--ink-soft); margin-top: 2px; }
+  .summary .tile .sub .up{ color: var(--normal); }
+  .summary .tile .sub .down{ color: var(--risco); }
   .summary .tile{ background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; }
   .summary .tile .num{ font-size: 21px; font-weight: 700; }
   .summary .tile .num small{ font-size: 12px; color: var(--ink-soft); font-weight: 700; }
@@ -100,6 +102,30 @@
   }
   .filters input[type=search]{ min-width: 240px; font-weight: 600; }
   .filters label.check{ font-size: 12.5px; font-weight: 700; color: var(--ink-soft); display:flex; align-items:center; gap:6px; cursor:pointer; }
+  .tabs{ display:flex; gap: 4px; border-bottom: 2px solid var(--line); margin: 6px 0 16px; }
+  .tab{ background: none; border: none; border-bottom: 3px solid transparent; margin-bottom: -2px; padding: 10px 16px; font-size: 14px; font-weight: 800; color: var(--ink-soft); cursor: pointer; }
+  .tab.active{ color: var(--ink); border-bottom-color: var(--ink); }
+  .resumo h2{ font-size: 17px; font-weight: 800; margin: 28px 0 10px; }
+  .resumo h2:first-child{ margin-top: 4px; }
+  .resumo .hint{ font-size: 12px; color: var(--ink-soft); font-weight: 600; margin: -4px 0 10px; }
+  .attention{ background: var(--card); border: 1px solid var(--line); border-left: 4px solid var(--ink); border-radius: 12px; padding: 14px 18px; font-size: 13.5px; line-height: 1.6; }
+  .attention ul{ margin: 6px 0 0; padding-left: 18px; }
+  .table-wrap{ overflow-x: auto; background: var(--card); border: 1px solid var(--line); border-radius: 12px; }
+  table.agg{ border-collapse: collapse; width: 100%; font-size: 12.5px; }
+  table.agg th, table.agg td{ padding: 8px 9px; text-align: right; white-space: nowrap; border-bottom: 1px solid var(--line); }
+  table.agg th{ font-size: 10.5px; text-transform: uppercase; letter-spacing: .02em; color: var(--ink-soft); font-weight: 800; background: var(--bg); cursor: pointer; user-select: none; position: sticky; top: 0; }
+  table.agg th.sorted::after{ content: ' ▾'; }
+  table.agg th.sorted.asc::after{ content: ' ▴'; }
+  table.agg th:first-child, table.agg td:first-child, table.agg td.txt, table.agg th.txt{ text-align: left; }
+  table.agg td.wrap{ white-space: normal; min-width: 220px; max-width: 420px; text-align: left; }
+  table.agg td{ font-weight: 600; }
+  table.agg td .p{ display:block; color: var(--ink-soft); font-size: 11px; }
+  table.agg td.name{ white-space: normal; min-width: 180px; max-width: 320px; }
+  table.agg tr.total td{ font-weight: 800; background: var(--bg); border-bottom: none; }
+  table.agg td.bad{ color: var(--risco); font-weight: 800; }
+  table.agg td.good{ color: var(--normal); font-weight: 800; }
+  .mini-bar{ display:block; width: 100%; min-width: 50px; height: 6px; background: var(--line); border-radius: 3px; vertical-align: middle; margin-top: 4px; overflow: hidden; }
+  .mini-bar > span{ display:block; height: 100%; background: var(--normal); }
   .result-count{ font-size: 12.5px; color: var(--ink-soft); font-weight: 700; margin: 8px 0 20px; }
 
   /* Groups */
@@ -152,18 +178,16 @@
   .empty{ text-align:center; color: var(--ink-soft); font-weight: 700; padding: 60px 20px; background: var(--card); border: 1px dashed var(--line); border-radius: 12px; }
 
   @media (max-width: 900px){
-    .summary{ grid-template-columns: 1fr 1fr 1fr; }
+    .summary{ grid-template-columns: 1fr 1fr; }
     .meta{ grid-template-columns: 1fr; }
   }
   @media (max-width: 560px){
     .wrap{ padding: 24px 16px 80px; }
-    .summary{ grid-template-columns: 1fr 1fr; }
     .inputs{ grid-template-columns: 1fr 1fr; }
     .filters input[type=search]{ min-width: 0; width: 100%; }
     h1{ font-size: 24px; }
     .brand{ flex-direction: column; align-items: flex-start; gap: 12px; }
     .brand-logo{ height: 38px; }
-    .reporter input{ min-width: 0; flex: 1; }
   }
 </style>
 </head>
@@ -193,11 +217,6 @@
     Para cada meta: preencher a <b>% de execução a 30/09/2026</b> (coluna AB) e, sempre que tenham ocorrido no último mês alterações suscetíveis de impactar a previsão anteriormente reportada — <b>atrasos, reprogramações, bloqueios, alterações de âmbito ou evolução relevante dos trabalhos</b> — rever a <b>% de execução prevista a 30/11/2026</b> (coluna AD), indicando o motivo e uma breve justificação em OBS (coluna AC). As alterações ficam gravadas automaticamente ao sair de cada campo.
   </div>
 
-  <div class="reporter">
-    <label for="reporterName">Preenchido por:</label>
-    <input id="reporterName" placeholder="o teu nome (fica registado em cada alteração)">
-  </div>
-
   <div class="summary" id="summary"></div>
 
   <div class="filters" id="coordFilters"></div>
@@ -213,9 +232,14 @@
     <input type="search" id="searchInput" placeholder="Pesquisar ID, projeto, meta...">
     <label class="check"><input type="checkbox" id="prioFilter"> Só metas prioritárias</label>
   </div>
+  <div class="tabs" role="tablist">
+    <button class="tab active" data-tab="metas" role="tab">Preencher metas</button>
+    <button class="tab" data-tab="resumo" role="tab">Resumo por coordenação e gestor</button>
+  </div>
   <p class="result-count" id="resultCount"></p>
 
   <div id="groupsContainer"></div>
+  <div id="resumoContainer" class="resumo" hidden></div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
@@ -288,10 +312,10 @@
   const $ = {
     status: el('statusMsg'), banner: el('bannerArea'), summary: el('summary'),
     coordFilters: el('coordFilters'), gestorFilter: el('gestorFilter'), stateFilter: el('stateFilter'),
-    search: el('searchInput'), prio: el('prioFilter'), count: el('resultCount'), groups: el('groupsContainer'),
+    search: el('searchInput'), prio: el('prioFilter'), count: el('resultCount'), groups: el('groupsContainer'), resumo: el('resumoContainer'),
     importBtn: el('importBtn'), importInput: el('importInput'),
     exportOriginalBtn: el('exportOriginalBtn'), exportOriginalInput: el('exportOriginalInput'),
-    exportSummaryBtn: el('exportSummaryBtn'), reporter: el('reporterName')
+    exportSummaryBtn: el('exportSummaryBtn')
   };
 
   // ---------- helpers ----------
@@ -406,7 +430,7 @@
   }
 
   async function saveFields(m, fields, noteEl){
-    const payload = { ...fields, updated_at: new Date().toISOString(), updated_by: reporterName() || null };
+    const payload = { ...fields, updated_at: new Date().toISOString() };
     Object.assign(m, payload);
     if (!dbOk) { if (noteEl) { noteEl.textContent = 'Guardado só neste browser (sem base de dados)'; noteEl.className = 'saved-note err'; } return; }
     if (noteEl) { noteEl.textContent = 'A guardar...'; noteEl.className = 'saved-note'; }
@@ -417,9 +441,6 @@
     }
   }
 
-  function reporterName(){ return ($.reporter.value || '').trim(); }
-  try { $.reporter.value = localStorage.getItem('metas2026.reporter') || ''; } catch(e) {}
-  $.reporter.addEventListener('change', () => { try { localStorage.setItem('metas2026.reporter', reporterName()); } catch(e) {} });
 
   // ---------- Import ----------
   $.importBtn.addEventListener('click', () => $.importInput.click());
@@ -713,7 +734,7 @@
     const list = filtered();
     if (!list.length) { setStatus('Não há metas para exportar com os filtros atuais.', 'err'); return; }
     const head = ['ID_Meta', 'Coord SPMS', 'Gestor de Projeto SPMS', 'Nome Projeto', 'Nome da meta', 'Meta prioritária', 'Valor da Meta (€) S/IVA', 'Data de Fim',
-      '% Execução 31/08/2026', '% Execução 30/09/2026', 'OBS', '% Prevista 30/11/2026 (original)', '% Prevista 30/11/2026 (revista)', 'Previsão revista?', 'Motivo da revisão', 'Alertas', 'Preenchido por', 'Atualizado em'];
+      '% Execução 31/08/2026', '% Execução 30/09/2026', 'OBS', '% Prevista 30/11/2026 (original)', '% Prevista 30/11/2026 (revista)', 'Previsão revista?', 'Motivo da revisão', 'Alertas', 'Atualizado em'];
     const rows = [head];
     for (const m of list) {
       const d = m.dados || {};
@@ -727,7 +748,6 @@
         isRevised(m) ? 'Sim' : 'Não',
         m.motivo_revisao || '',
         warningsFor(m).map(w => w.text).join('\n'),
-        m.updated_by || '',
         m.updated_at ? new Date(m.updated_at).toLocaleString('pt-PT') : ''
       ]);
     }
@@ -738,11 +758,39 @@
       const val = ws[XLSX.utils.encode_cell({ r, c: 6 })]; if (val && val.t === 'n') val.z = '#,##0 €';
       const dt = ws[XLSX.utils.encode_cell({ r, c: 7 })]; if (dt) dt.z = 'dd/mm/yyyy';
     }
-    ws['!cols'] = [12, 10, 18, 30, 40, 10, 14, 12, 10, 10, 40, 12, 12, 10, 18, 40, 16, 16].map(w => ({ wch: w }));
+    ws['!cols'] = [12, 10, 18, 30, 40, 10, 14, 12, 10, 10, 40, 12, 12, 10, 18, 40, 16].map(w => ({ wch: w }));
     const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Ponto de situação');
+    XLSX.utils.book_append_sheet(wb, aggSheet(list, m => m.dados.coord_spms, ['Coordenação']), 'Por coordenação');
+    XLSX.utils.book_append_sheet(wb, aggSheet(list, m => m.dados.gestor, ['Gestor', 'Coordenação'], true), 'Por gestor');
+    XLSX.utils.book_append_sheet(wb, aggSheet(list, m => m.dados.projeto, ['Projeto', 'Coordenação'], true), 'Por projeto');
+    XLSX.utils.book_append_sheet(wb, ws, 'Metas');
     XLSX.writeFile(wb, 'Metas2026-ponto-situacao-' + new Date().toISOString().slice(0, 10) + '.xlsx');
   });
+
+  function aggSheet(list, keyFn, labels, withCoord){
+    const head = labels.concat(['Metas', 'Preenchidas 30/09', '% preenchidas', 'Valor total (€ s/IVA)', 'Executado 31/08 (€)', '% exec. 31/08',
+      'Executado 30/09 (€)', '% exec. 30/09', 'Variação no mês (€)', 'Previsto 30/11 (€)', '% prevista 30/11', 'Previsões revistas', 'Impacto das revisões (€)', 'Metas com alertas']);
+    const rows = [head];
+    const push = (label, coord, items) => {
+      const a = aggregate(items);
+      const r = [label];
+      if (withCoord) r.push(coord);
+      r.push(a.n, a.filled, a.n ? a.filled / a.n : null, a.valor, a.e0831, a.valor ? a.e0831 / a.valor : null,
+        a.e0930, a.valor ? a.e0930 / a.valor : null, a.e0930 - a.e0831, a.p1130, a.valor ? a.p1130 / a.valor : null, a.revised, a.impacto, a.alerts);
+      rows.push(r);
+    };
+    for (const g of groupBy(list, keyFn)) push(g.key, coordsOf(g.items), g.items);
+    push('Total', '', list);
+    const ws = XLSX.utils.aoa_to_sheet(rows);
+    const off = labels.length;
+    const range = XLSX.utils.decode_range(ws['!ref']);
+    for (let r = 1; r <= range.e.r; r++) {
+      [2, 5, 7, 10].forEach(c => { const cell = ws[XLSX.utils.encode_cell({ r, c: c + off })]; if (cell && cell.t === 'n') cell.z = '0%'; });
+      [3, 4, 6, 8, 9, 12].forEach(c => { const cell = ws[XLSX.utils.encode_cell({ r, c: c + off })]; if (cell && cell.t === 'n') cell.z = '#,##0 €'; });
+    }
+    ws['!cols'] = labels.map((l, i) => ({ wch: i === 0 ? 34 : 12 })).concat(Array(14).fill({ wch: 14 }));
+    return ws;
+  }
 
   // ---------- Filters ----------
   function buildFilterOptions(){
@@ -804,31 +852,171 @@
     return den ? num / den : null;
   }
 
-  function renderSummary(list){
-    const total = list.length;
-    const filled = list.filter(m => m.exec_0930 != null).length;
-    const revised = list.filter(isRevised).length;
-    const alerts = list.filter(m => reportState(m) === 'alert').length;
-    const e0831 = weighted(list, m => m.dados.exec_0831);
-    const e0930 = weighted(list.filter(m => m.exec_0930 != null), m => m.exec_0930);
-    const e0831same = weighted(list.filter(m => m.exec_0930 != null), m => m.dados.exec_0831);
-    const p1130 = weighted(list, m => m.prev_1130);
-    const pct = total ? Math.round(filled / total * 100) : 0;
-    const delta = (e0930 != null && e0831same != null) ? e0930 - e0831same : null;
-    $.summary.innerHTML = `
-      <div class="tile"><div class="num">${filled}<small> / ${total}</small></div><div class="label">Metas com execução a 30/09 preenchida</div><div class="progress-line"><div style="width:${pct}%"></div></div></div>
-      <div class="tile"><div class="num">${fmtPct(e0831)}</div><div class="label">Execução a 31/08 (média ponderada pelo valor)</div></div>
-      <div class="tile"><div class="num">${fmtPct(e0930)}${delta != null ? `<small> ${delta >= 0 ? '▲ +' : '▼ '}${(Math.round(delta * 10) / 10).toLocaleString('pt-PT')} pts</small>` : ''}</div><div class="label">Execução a 30/09 (metas já preenchidas)</div></div>
-      <div class="tile"><div class="num">${fmtPct(p1130)}</div><div class="label">Execução prevista a 30/11</div></div>
-      <div class="tile"><div class="num">${revised}</div><div class="label">Previsões a 30/11 revistas</div></div>
-      <div class="tile${alerts ? ' warn' : ''}"><div class="num">${alerts}</div><div class="label">Metas com alertas</div></div>`;
+  // Valores financeiros = valor da meta s/IVA (coluna S) × % de execução.
+  // Para 30/09, nas metas ainda por preencher usa-se a % de 31/08 (último valor conhecido).
+  function aggregate(list){
+    const a = { n: list.length, filled: 0, revised: 0, alerts: 0, pending: 0, valor: 0, e0831: 0, e0930: 0, p1130: 0, p1130orig: 0, impacto: 0 };
+    for (const m of list) {
+      const d = m.dados || {};
+      const v = numOrNull(d.valor_sem_iva) || 0;
+      const aa = d.exec_0831 == null ? 0 : d.exec_0831;
+      const ab = m.exec_0930 == null ? aa : m.exec_0930;
+      if (m.exec_0930 != null) a.filled++; else a.pending++;
+      if (isRevised(m)) a.revised++;
+      if (reportState(m) === 'alert') a.alerts++;
+      a.valor += v;
+      a.e0831 += v * aa / 100;
+      a.e0930 += v * ab / 100;
+      a.p1130 += v * (m.prev_1130 == null ? 0 : m.prev_1130) / 100;
+      a.p1130orig += v * (m.prev_1130_original == null ? 0 : m.prev_1130_original) / 100;
+    }
+    a.impacto = a.p1130 - a.p1130orig;
+    return a;
   }
+  function groupBy(list, keyFn){
+    const map = new Map();
+    for (const m of list) {
+      const k = String(keyFn(m) || '—').trim() || '—';
+      if (!map.has(k)) map.set(k, []);
+      map.get(k).push(m);
+    }
+    return [...map.entries()].map(([key, items]) => ({ key, items })).sort((x, y) => x.key.localeCompare(y.key, 'pt'));
+  }
+  function coordsOf(items){ return [...new Set(items.map(m => (m.dados.coord_spms || '').trim()).filter(Boolean))].join(', '); }
+  function pctOf(part, total){ return total ? part / total * 100 : null; }
+  function fmtEuroSigned(v){
+    if (!v || Math.abs(v) < 0.5) return '€0';
+    return (v > 0 ? '+' : '−') + fmtEuro(Math.abs(v));
+  }
+
+  function renderSummary(list){
+    const a = aggregate(list);
+    const pct = a.n ? Math.round(a.filled / a.n * 100) : 0;
+    const dMes = a.e0930 - a.e0831;
+    $.summary.innerHTML = `
+      <div class="tile"><div class="num">${a.filled}<small> / ${a.n}</small></div><div class="label">Metas com execução a 30/09 preenchida</div><div class="progress-line"><div style="width:${pct}%"></div></div></div>
+      <div class="tile"><div class="num">${a.revised}</div><div class="label">Previsões a 30/11 revistas</div>${a.revised ? `<div class="sub">Impacto: <span class="${a.impacto < 0 ? 'down' : 'up'}">${fmtEuroSigned(a.impacto)}</span></div>` : ''}</div>
+      <div class="tile${a.alerts ? ' warn' : ''}"><div class="num">${a.alerts}</div><div class="label">Metas com alertas</div></div>
+      <div class="tile fin"><div class="num">${fmtEuro(a.valor)}</div><div class="label">Valor total das metas (s/IVA)</div></div>
+      <div class="tile fin"><div class="num">${fmtEuro(a.e0831)}</div><div class="label">Executado a 31/08</div><div class="sub">${fmtPct(pctOf(a.e0831, a.valor))} do valor</div></div>
+      <div class="tile fin"><div class="num">${fmtEuro(a.e0930)}</div><div class="label">Executado a 30/09${a.pending ? ' *' : ''}</div><div class="sub">${fmtPct(pctOf(a.e0930, a.valor))} do valor · <span class="${dMes < 0 ? 'down' : 'up'}">${fmtEuroSigned(dMes)} no mês</span></div></div>
+      <div class="tile fin"><div class="num">${fmtEuro(a.p1130)}</div><div class="label">Previsto executar até 30/11</div><div class="sub">${fmtPct(pctOf(a.p1130, a.valor))} do valor</div></div>
+      <div class="tile fin"><div class="num">${fmtEuro(Math.max(a.p1130 - a.e0930, 0))}</div><div class="label">Falta executar até 30/11</div><div class="sub">${fmtEuro(Math.max(a.valor - a.p1130, 0))} fica por executar</div></div>
+      ${a.pending ? `<p class="hint" style="grid-column:1/-1;margin:0;font-size:11.5px;color:var(--ink-soft);font-weight:600">* Nas ${a.pending} metas ainda sem execução a 30/09 usa-se a % de 31/08. Valores = valor da meta s/IVA × % de execução.</p>` : ''}`;
+  }
+
+  // ---------- Resumo (por coordenação / gestor / projeto) ----------
+  let activeTab = 'metas';
+  const sortState = {};
+  document.querySelector('.tabs').addEventListener('click', ev => {
+    const t = ev.target.closest('[data-tab]');
+    if (!t) return;
+    activeTab = t.dataset.tab;
+    document.querySelectorAll('.tab').forEach(b => b.classList.toggle('active', b === t));
+    render();
+  });
+
+  const AGG_COLS = [
+    { k: 'n', label: 'Metas', v: a => a.n, f: a => a.n },
+    { k: 'filled', label: 'Preenchidas', v: a => pctOf(a.filled, a.n), f: a => `${a.filled}/${a.n}<span class="mini-bar"><span style="width:${Math.round(pctOf(a.filled, a.n) || 0)}%"></span></span>`, cls: a => a.filled === a.n ? 'good' : '' },
+    { k: 'valor', label: 'Valor total', v: a => a.valor, f: a => fmtEuro(a.valor) },
+    { k: 'e0831', label: 'Exec. 31/08', v: a => a.e0831, f: a => `${fmtEuro(a.e0831)}<span class="p">${fmtPct(pctOf(a.e0831, a.valor))}</span>` },
+    { k: 'e0930', label: 'Exec. 30/09', v: a => a.e0930, f: a => `${fmtEuro(a.e0930)}<span class="p">${fmtPct(pctOf(a.e0930, a.valor))}</span>` },
+    { k: 'mes', label: 'Δ mês', v: a => a.e0930 - a.e0831, f: a => fmtEuroSigned(a.e0930 - a.e0831), cls: a => a.e0930 - a.e0831 < -0.5 ? 'bad' : '' },
+    { k: 'p1130', label: 'Previsto 30/11', v: a => a.p1130, f: a => `${fmtEuro(a.p1130)}<span class="p">${fmtPct(pctOf(a.p1130, a.valor))}</span>` },
+    { k: 'revised', label: 'Revistas', v: a => a.revised, f: a => a.revised },
+    { k: 'impacto', label: 'Impacto revisões', v: a => a.impacto, f: a => a.revised ? fmtEuroSigned(a.impacto) : '—', cls: a => a.impacto < -0.5 ? 'bad' : '' },
+    { k: 'alerts', label: 'Alertas', v: a => a.alerts, f: a => a.alerts, cls: a => a.alerts ? 'bad' : '' }
+  ];
+
+  function aggTable(id, list, keyFn, firstLabel, withCoord){
+    const groups = groupBy(list, keyFn).map(g => ({ ...g, a: aggregate(g.items), coord: coordsOf(g.items) }));
+    const st = sortState[id] || { k: '__key', asc: true };
+    const col = AGG_COLS.find(c => c.k === st.k);
+    groups.sort((x, y) => {
+      const r = col ? (col.v(x.a) ?? -Infinity) - (col.v(y.a) ?? -Infinity) : x.key.localeCompare(y.key, 'pt');
+      return st.asc ? r : -r;
+    });
+    const th = (k, label, cls) => `<th data-sort="${k}" data-table="${id}" class="${cls || ''}${st.k === k ? ' sorted' + (st.asc ? ' asc' : '') : ''}">${label}</th>`;
+    const row = (label, coord, a, cls) => `<tr class="${cls || ''}"><td class="txt name">${escapeHtml(label)}</td>${withCoord ? `<td class="txt">${escapeHtml(coord)}</td>` : ''}${AGG_COLS.map(c => `<td class="${c.cls ? c.cls(a) : ''}">${c.f(a)}</td>`).join('')}</tr>`;
+    return `<div class="table-wrap"><table class="agg"><thead><tr>${th('__key', firstLabel, 'txt')}${withCoord ? '<th class="txt">Coord.</th>' : ''}${AGG_COLS.map(c => th(c.k, c.label)).join('')}</tr></thead><tbody>
+      ${groups.map(g => row(g.key, g.coord, g.a)).join('')}
+      ${row('Total', '', aggregate(list), 'total')}
+    </tbody></table></div>`;
+  }
+
+  function attentionHtml(list){
+    const a = aggregate(list);
+    const items = [];
+    const byGestor = groupBy(list, m => m.dados.gestor).map(g => ({ key: g.key, a: aggregate(g.items) }));
+    const pend = byGestor.filter(g => g.a.pending).sort((x, y) => y.a.pending - x.a.pending);
+    if (pend.length) items.push(`<b>Por preencher:</b> ${a.pending} metas, de ${pend.length} gestor${pend.length > 1 ? 'es' : ''} — ${pend.slice(0, 6).map(g => `${escapeHtml(g.key)} (${g.a.pending})`).join(', ')}${pend.length > 6 ? ', ...' : ''}.`);
+    else if (a.n) items.push('<b>Todas as metas têm a execução a 30/09 preenchida.</b>');
+    const rev = list.filter(isRevised);
+    if (rev.length) {
+      const motivos = groupBy(rev, m => m.motivo_revisao || 'sem motivo').map(g => `${escapeHtml(g.key)} (${g.items.length})`).join(', ');
+      items.push(`<b>Previsões a 30/11 revistas:</b> ${rev.length} meta${rev.length > 1 ? 's' : ''}, com impacto de ${fmtEuroSigned(a.impacto)} no valor previsto executar — motivos: ${motivos}.`);
+    }
+    const down = list.filter(m => m.exec_0930 != null && m.dados.exec_0831 != null && m.exec_0930 < m.dados.exec_0831 - 0.05);
+    if (down.length) items.push(`<b>Execução a 30/09 inferior à de 31/08:</b> ${down.length} meta${down.length > 1 ? 's' : ''} (${down.slice(0, 5).map(m => escapeHtml(m.id)).join(', ')}${down.length > 5 ? ', ...' : ''}).`);
+    const late = list.filter(m => { const f = parseDate(m.dados.data_fim); return f && f < DATA_REPORTE && (m.exec_0930 ?? m.dados.exec_0831 ?? 0) < 100; });
+    if (late.length) {
+      const v = late.reduce((s, m) => s + (numOrNull(m.dados.valor_sem_iva) || 0), 0);
+      items.push(`<b>Data de fim ultrapassada sem estar a 100%:</b> ${late.length} metas (${fmtEuro(v)} de valor).`);
+    }
+    const coords = groupBy(list, m => m.dados.coord_spms).map(g => ({ key: g.key, a: aggregate(g.items) })).filter(g => g.a.valor);
+    if (coords.length > 1) {
+      const low = coords.slice().sort((x, y) => x.a.p1130 / x.a.valor - y.a.p1130 / y.a.valor)[0];
+      items.push(`<b>Menor execução prevista a 30/11:</b> ${escapeHtml(low.key)} (${fmtPct(pctOf(low.a.p1130, low.a.valor))} do valor).`);
+    }
+    return `<div class="attention"><ul style="margin:0">${items.map(i => `<li>${i}</li>`).join('')}</ul></div>`;
+  }
+
+  function revisedTable(list){
+    const rev = list.filter(isRevised);
+    if (!rev.length) return '<p class="hint">Nenhuma previsão revista com os filtros atuais.</p>';
+    return `<div class="table-wrap"><table class="agg"><thead><tr><th class="txt">ID</th><th class="txt">Coord.</th><th class="txt">Gestor</th><th class="txt">Meta</th><th>Original</th><th>Revista</th><th>Impacto</th><th class="txt">Motivo</th><th class="txt">OBS</th></tr></thead><tbody>
+      ${rev.map(m => {
+        const v = numOrNull(m.dados.valor_sem_iva) || 0;
+        const imp = v * ((m.prev_1130 || 0) - (m.prev_1130_original || 0)) / 100;
+        return `<tr><td class="txt">${escapeHtml(m.id)}</td><td class="txt">${escapeHtml(m.dados.coord_spms || '')}</td><td class="txt">${escapeHtml(m.dados.gestor || '')}</td><td class="wrap">${escapeHtml(m.dados.meta || '')}</td><td>${fmtPct(m.prev_1130_original)}</td><td>${fmtPct(m.prev_1130)}</td><td class="${imp < -0.5 ? 'bad' : ''}">${fmtEuroSigned(imp)}</td><td class="txt">${escapeHtml(m.motivo_revisao || '—')}</td><td class="wrap">${escapeHtml(m.obs || '')}</td></tr>`;
+      }).join('')}
+    </tbody></table></div>`;
+  }
+
+  function renderResumo(list){
+    if (!list.length) { $.resumo.innerHTML = '<div class="empty">Nenhuma meta corresponde aos filtros.</div>'; return; }
+    $.resumo.innerHTML = `
+      <h2>Pontos de atenção</h2>
+      ${attentionHtml(list)}
+      <h2>Por coordenação</h2>
+      <p class="hint">Valores em € s/IVA (valor da meta × % de execução). Clica no cabeçalho de uma coluna para ordenar.</p>
+      ${aggTable('coord', list, m => m.dados.coord_spms, 'Coordenação', false)}
+      <h2>Por gestor de projeto</h2>
+      ${aggTable('gestor', list, m => m.dados.gestor, 'Gestor', true)}
+      <h2>Por projeto</h2>
+      ${aggTable('projeto', list, m => m.dados.projeto, 'Projeto', true)}
+      <h2>Previsões a 30/11 revistas</h2>
+      ${revisedTable(list)}`;
+  }
+
+  $.resumo.addEventListener('click', ev => {
+    const th = ev.target.closest('th[data-sort]');
+    if (!th) return;
+    const id = th.dataset.table, k = th.dataset.sort;
+    const cur = sortState[id];
+    sortState[id] = cur && cur.k === k ? { k, asc: !cur.asc } : { k, asc: k === '__key' };
+    renderResumo(filtered());
+  });
 
   function render(){
     buildGestorOptions();
     const list = filtered();
     renderSummary(list);
     $.count.textContent = metas.length ? `${list.length} de ${metas.length} metas` : '';
+    $.groups.hidden = activeTab !== 'metas';
+    $.resumo.hidden = activeTab !== 'resumo';
+    if (activeTab === 'resumo') { renderResumo(list); return; }
     if (!list.length) {
       $.groups.innerHTML = `<div class="empty">${metas.length ? 'Nenhuma meta corresponde aos filtros.' : 'Ainda não há metas. Usa "Importar Excel" com o ficheiro CP2026_Tabela_Anexos (folha "Metas 2026").'}</div>`;
       return;
