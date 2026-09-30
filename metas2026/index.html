@@ -179,7 +179,6 @@
       </div>
     </div>
     <div class="toolbar">
-      <a href="prr-dashboard.html" class="secondary">← Status Projetos PRR</a>
       <button id="importBtn">Importar Excel</button>
       <input type="file" id="importInput" accept=".xlsx,.xlsm" style="display:none">
       <button id="exportOriginalBtn" title="Escolhe o ficheiro original (CP2026_Tabela_Anexos) e o painel preenche as colunas AB, AC e AD, mantendo todo o resto do ficheiro intacto">Preencher Excel original</button>
@@ -224,7 +223,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script>
 (function(){
-  // Mesmo projeto Supabase do painel PRR (prr-dashboard.html); tabela própria: `metas`.
+  // Tabela própria no Supabase: `metas` (independente do painel PRR).
   const SUPABASE_URL = 'https://yqsyqixmcukhdunybpyw.supabase.co';
   const SUPABASE_ANON_KEY = 'sb_publishable_Ckl-qk8aiwAqqkfcxZD7tg_oK4EY_Um';
   const db = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -401,7 +400,7 @@
   function showDbBanner(error){
     const missing = /relation|does not exist|schema cache|not find/i.test(error.message || '');
     $.banner.innerHTML = `<div class="banner">${missing
-      ? 'A tabela <code>metas</code> ainda não existe no Supabase. Corre uma vez o SQL indicado em <code>README-prr.md</code> (secção "Metas 2026") no SQL Editor do Supabase.'
+      ? 'A tabela <code>metas</code> ainda não existe no Supabase. Corre uma vez o SQL indicado em <code>metas2026/README.md</code> no SQL Editor do Supabase.'
       : 'Não foi possível ligar à base de dados: ' + escapeHtml(error.message || String(error))}
       Até lá, podes importar e preencher na mesma, mas as alterações ficam só neste browser e perdem-se ao recarregar a página.</div>`;
   }
