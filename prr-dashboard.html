@@ -61,6 +61,12 @@
   .toolbar button:hover{ opacity: .85; }
   .toolbar button:disabled{ background: var(--line); cursor: not-allowed; }
   .toolbar button.secondary{ background: var(--card); color: var(--ink); border: 1px solid var(--line); }
+  .toolbar a.toolbar-link{
+    background: var(--card); color: var(--ink); border: 1px solid var(--line); border-radius: 7px;
+    font-family: 'Overpass', sans-serif; font-weight: 700; font-size: 12.5px;
+    padding: 9px 16px; text-decoration: none; display: inline-block;
+  }
+  .toolbar a.toolbar-link:hover{ opacity: .85; }
 
   .status-msg{ font-size: 12.5px; color: var(--ink-soft); font-weight: 600; min-height: 18px; }
   .status-msg.err{ color: var(--risco); }
@@ -262,6 +268,7 @@
       <button id="exportExcelBtn">Exportar Excel</button>
       <button id="exportPptxBtn">Exportar PowerPoint</button>
       <button id="releaseNotesBtn" class="secondary">Novidades</button>
+      <a href="metas-2026.html" class="toolbar-link" title="Preencher a execução das metas a 30/09/2026 e rever a previsão a 30/11/2026">Metas 2026 →</a>
     </div>
   </header>
   <p class="status-msg" id="statusMsg"></p>
@@ -335,6 +342,9 @@
     </div>
     <p class="notes-date">25/09/2026</p>
     <p>O Painel PRR ganhou várias novidades nas últimas semanas — gestão de projetos individual, um resumo executivo automático (agora organizado por coordenação), evolução semana a semana, e dois campos novos por projeto (Destaques e Risco %). Está tudo já em produção, sem passos adicionais para quem usa o painel.</p>
+
+    <h3>Metas 2026 — ponto de situação (30/09/2026)</h3>
+    <p>Nova página <a href="metas-2026.html"><b>Metas 2026</b></a> (botão ao lado de "Novidades"), para cada gestor preencher a <b>% de execução das metas a 30/09/2026</b> (coluna AB do ficheiro CP2026_Tabela_Anexos) e rever a <b>% prevista a 30/11/2026</b> (coluna AD) sempre que tenha havido atrasos, reprogramações, bloqueios, alterações de âmbito ou evolução relevante — com o motivo e uma justificação em OBS (coluna AC). Filtra-se por coordenação e por gestor, e a página assinala o que falta preencher e possíveis inconsistências. No fim, o botão "Preencher Excel original" devolve o próprio ficheiro com as três colunas preenchidas.</p>
 
     <h3>Gestão de projetos</h3>
     <p>O botão <b>+ Novo projeto</b> está de volta: dá para criar e editar projetos um a um, sem ter de reimportar um Excel completo sempre que surge um projeto novo. Continua a não haver botão de remover — para tirar um projeto da lista, importa-se um Excel atualizado sem esse projeto.</p>
