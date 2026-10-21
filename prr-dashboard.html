@@ -72,6 +72,7 @@
   .summary .tile{ background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; }
   .summary .tile .num{ font-family: 'Overpass', sans-serif; font-size: 21px; font-weight: 700; }
   .summary .tile .label{ font-size: 10.5px; color: var(--ink-soft); margin-top: 4px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.02em; line-height: 1.3; }
+  .summary .tile .sub{ font-size: 11.5px; color: var(--ink-soft); font-weight: 600; margin-top: 2px; }
   .delta-note{ font-size: 11.5px; color: var(--ink-soft); font-weight: 600; margin: 0 0 22px; min-height: 1em; }
 
   .val-group{ display:inline-flex; align-items:baseline; gap: 2px; }
@@ -290,7 +291,7 @@
     <div class="tile"><div class="num" id="sumAtraso">0</div><div class="label">Em atraso</div></div>
     <div class="tile"><div class="num" id="sumTaxaProjeto">0%</div><div class="label">Taxa execução projeto</div></div>
     <div class="tile"><div class="num" id="sumInvestimento">€0</div><div class="label">Investimento total</div></div>
-    <div class="tile"><div class="num" id="sumTaxaFin">0%</div><div class="label">Taxa execução financeira</div></div>
+    <div class="tile"><div class="num" id="sumTaxaFin">0%</div><div class="sub" id="sumValorExecutado"></div><div class="label">Taxa execução financeira</div></div>
   </div>
   <p class="delta-note" id="deltaNote"></p>
 
@@ -542,6 +543,7 @@
     releaseNotesBtn: el('releaseNotesBtn'), notesOverlay: el('notesOverlay'), closeNotes: el('closeNotes'),
     sumExecucao: el('sumExecucao'), sumConcluidos: el('sumConcluidos'), sumAtraso: el('sumAtraso'),
     sumTaxaProjeto: el('sumTaxaProjeto'), sumInvestimento: el('sumInvestimento'), sumTaxaFin: el('sumTaxaFin'),
+    sumValorExecutado: el('sumValorExecutado'),
     importExcelBtn: el('importExcelBtn'), importExcelInput: el('importExcelInput'),
     exportExcelBtn: el('exportExcelBtn'),
   };
@@ -1049,6 +1051,10 @@
       ? deltaBadgeHtml(matchedF.reduce((s,p) => s + p.taxaFinanceira, 0) / matchedF.length - matchedF.reduce((s,p) => s + baseline[p.id].taxa_financeira, 0) / matchedF.length, { unit: ' pts', decimals: 1, showZero: true })
       : '';
     $.sumTaxaFin.innerHTML = avgTaxaF.toFixed(0) + '%' + deltaF;
+
+    const withValorExecutado = list.filter(p => typeof p.investimentoTotal === 'number' && typeof p.taxaFinanceira === 'number');
+    const valorExecutado = withValorExecutado.reduce((s,p) => s + p.investimentoTotal * p.taxaFinanceira / 100, 0);
+    $.sumValorExecutado.textContent = withValorExecutado.length ? fmtEuro(valorExecutado) + ' executado' : '';
 
     const baselineDates = Object.values(baseline).map(r => r.week_start).filter(Boolean);
     $.deltaNote.textContent = baselineDates.length
