@@ -1033,7 +1033,7 @@
     const deltaP = matchedP.length
       ? deltaBadgeHtml(matchedP.reduce((s,p) => s + p.taxaProjeto, 0) / matchedP.length - matchedP.reduce((s,p) => s + baseline[p.id].taxa_projeto, 0) / matchedP.length, { unit: ' pts', decimals: 1, showZero: true })
       : '';
-    $.sumTaxaProjeto.innerHTML = avgTaxaP.toFixed(0) + '%' + deltaP;
+    $.sumTaxaProjeto.innerHTML = avgTaxaP.toFixed(1) + '%' + deltaP;
 
     const totalInvest = list.reduce((s,p) => s + (typeof p.investimentoTotal === 'number' ? p.investimentoTotal : 0), 0);
     const matchedInv = list.filter(p => typeof p.investimentoTotal === 'number' && typeof baseline[p.id]?.investimento_total === 'number');
