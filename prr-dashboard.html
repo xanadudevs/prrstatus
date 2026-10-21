@@ -79,6 +79,7 @@
   .summary .tile .num .delta{ font-size: 11.5px; margin-left: 3px; vertical-align: middle; }
   .delta.up{ color: var(--normal); }
   .delta.down{ color: var(--risco); }
+  .delta.flat{ color: var(--ink-soft); font-weight: 700; }
 
   /* Filters */
   .filters{ display:flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; align-items:center; }
@@ -122,6 +123,15 @@
   .exec-changes ul{ margin: 0; padding-left: 18px; }
   .exec-changes li{ font-size: 12.5px; color: var(--ink); line-height: 1.55; margin-bottom: 4px; }
   .exec-changes li:last-child{ margin-bottom: 0; }
+
+  .exec-destaques{ margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--line); }
+  .exec-destaques-title{ font-size: 11.5px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.03em; margin-bottom: 8px; color: var(--ink); }
+  .exec-destaques-group{ margin-bottom: 10px; }
+  .exec-destaques-group:last-child{ margin-bottom: 0; }
+  .exec-destaques-unidade{ font-size: 11px; font-weight: 800; color: var(--ink-soft); text-transform: uppercase; letter-spacing: 0.02em; margin-bottom: 4px; }
+  .exec-destaques ul{ margin: 0; padding-left: 18px; }
+  .exec-destaques li{ font-size: 12.5px; color: var(--ink); line-height: 1.55; margin-bottom: 4px; }
+  .exec-destaques li:last-child{ margin-bottom: 0; }
 
   /* Category groups */
   .category-group{ margin-bottom: 36px; }
@@ -990,9 +1000,13 @@
 
   function deltaBadgeHtml(diff, opts = {}){
     if(diff === null || diff === undefined || Number.isNaN(diff)) return '';
-    const { decimals = 0, invert = false, unit = '', formatter } = opts;
+    const { decimals = 0, invert = false, unit = '', formatter, showZero = false } = opts;
     const rounded = Number(diff.toFixed(decimals));
-    if(rounded === 0) return '';
+    if(rounded === 0){
+      if(!showZero) return '';
+      const text = formatter ? formatter(0) : `0${unit}`;
+      return ` <span class="delta flat">${text}</span>`;
+    }
     const positive = rounded > 0;
     const good = invert ? !positive : positive;
     const arrow = positive ? '▲' : '▼';
@@ -1008,22 +1022,22 @@
     const nExec = list.filter(p => p.estado === 'em_execucao').length;
     const nConcl = list.filter(p => p.estado === 'concluido').length;
     const nAtr = list.filter(p => p.estado === 'em_atraso').length;
-    $.sumExecucao.innerHTML = nExec + (showCountDeltas ? deltaBadgeHtml(nExec - list.filter(p => baseline[p.id]?.estado === 'em_execucao').length) : '');
-    $.sumConcluidos.innerHTML = nConcl + (showCountDeltas ? deltaBadgeHtml(nConcl - list.filter(p => baseline[p.id]?.estado === 'concluido').length) : '');
-    $.sumAtraso.innerHTML = nAtr + (showCountDeltas ? deltaBadgeHtml(nAtr - list.filter(p => baseline[p.id]?.estado === 'em_atraso').length, { invert: true }) : '');
+    $.sumExecucao.innerHTML = nExec + (showCountDeltas ? deltaBadgeHtml(nExec - list.filter(p => baseline[p.id]?.estado === 'em_execucao').length, { showZero: true }) : '');
+    $.sumConcluidos.innerHTML = nConcl + (showCountDeltas ? deltaBadgeHtml(nConcl - list.filter(p => baseline[p.id]?.estado === 'concluido').length, { showZero: true }) : '');
+    $.sumAtraso.innerHTML = nAtr + (showCountDeltas ? deltaBadgeHtml(nAtr - list.filter(p => baseline[p.id]?.estado === 'em_atraso').length, { invert: true, showZero: true }) : '');
 
     const withTaxaP = list.filter(p => typeof p.taxaProjeto === 'number');
     const avgTaxaP = withTaxaP.length ? withTaxaP.reduce((s,p) => s + p.taxaProjeto, 0) / withTaxaP.length : 0;
     const matchedP = withTaxaP.filter(p => typeof baseline[p.id]?.taxa_projeto === 'number');
     const deltaP = matchedP.length
-      ? deltaBadgeHtml(matchedP.reduce((s,p) => s + p.taxaProjeto, 0) / matchedP.length - matchedP.reduce((s,p) => s + baseline[p.id].taxa_projeto, 0) / matchedP.length, { unit: ' pts' })
+      ? deltaBadgeHtml(matchedP.reduce((s,p) => s + p.taxaProjeto, 0) / matchedP.length - matchedP.reduce((s,p) => s + baseline[p.id].taxa_projeto, 0) / matchedP.length, { unit: ' pts', decimals: 1, showZero: true })
       : '';
     $.sumTaxaProjeto.innerHTML = avgTaxaP.toFixed(0) + '%' + deltaP;
 
     const totalInvest = list.reduce((s,p) => s + (typeof p.investimentoTotal === 'number' ? p.investimentoTotal : 0), 0);
     const matchedInv = list.filter(p => typeof p.investimentoTotal === 'number' && typeof baseline[p.id]?.investimento_total === 'number');
     const deltaInv = matchedInv.length
-      ? deltaBadgeHtml(matchedInv.reduce((s,p) => s + p.investimentoTotal, 0) - matchedInv.reduce((s,p) => s + baseline[p.id].investimento_total, 0), { formatter: fmtEuro })
+      ? deltaBadgeHtml(matchedInv.reduce((s,p) => s + p.investimentoTotal, 0) - matchedInv.reduce((s,p) => s + baseline[p.id].investimento_total, 0), { formatter: fmtEuro, showZero: true })
       : '';
     $.sumInvestimento.innerHTML = fmtEuro(totalInvest) + deltaInv;
 
@@ -1031,7 +1045,7 @@
     const avgTaxaF = withTaxaF.length ? withTaxaF.reduce((s,p) => s + p.taxaFinanceira, 0) / withTaxaF.length : 0;
     const matchedF = withTaxaF.filter(p => typeof baseline[p.id]?.taxa_financeira === 'number');
     const deltaF = matchedF.length
-      ? deltaBadgeHtml(matchedF.reduce((s,p) => s + p.taxaFinanceira, 0) / matchedF.length - matchedF.reduce((s,p) => s + baseline[p.id].taxa_financeira, 0) / matchedF.length, { unit: ' pts' })
+      ? deltaBadgeHtml(matchedF.reduce((s,p) => s + p.taxaFinanceira, 0) / matchedF.length - matchedF.reduce((s,p) => s + baseline[p.id].taxa_financeira, 0) / matchedF.length, { unit: ' pts', decimals: 1, showZero: true })
       : '';
     $.sumTaxaFin.innerHTML = avgTaxaF.toFixed(0) + '%' + deltaF;
 
@@ -1128,8 +1142,22 @@
 
     const hasAlert = scope.some(p => p.estado === 'em_atraso' || (p.riscosLista && p.riscosLista.length) || (maxRiscoPct(p.riscosLista) ?? 0) >= 50);
     $.execSummary.classList.toggle('has-alert', hasAlert);
-    const paragraphs = buildExecutiveSummaryParagraphs(scope, state.baseline);
+    const paragraphs = buildExecutiveSummaryParagraphs(scope, state.baseline, Infinity, false);
     let html = `<h2>${escapeHtml(title)}</h2>` + paragraphs.map(p => `<p>${escapeHtml(p)}</p>`).join('');
+
+    const destaquesGroups = buildDestaquesByCoordenacao(scope);
+    if(destaquesGroups.length){
+      const singleGroup = destaquesGroups.length === 1;
+      html += `<div class="exec-destaques">
+        <div class="exec-destaques-title">Destaques</div>
+        ${destaquesGroups.map(g => `
+          <div class="exec-destaques-group">
+            ${singleGroup ? '' : `<div class="exec-destaques-unidade">${escapeHtml(g.unidade)}</div>`}
+            <ul>${g.items.map(i => `<li>${escapeHtml(i)}</li>`).join('')}</ul>
+          </div>
+        `).join('')}
+      </div>`;
+    }
 
     if(state.unidadeFilter === 'todas'){
       const boxes = buildCoordenacaoBoxes(scope);
@@ -1371,7 +1399,7 @@
     return lines;
   }
 
-  function buildExecutiveSummaryParagraphs(all, baseline = {}, maxDestaqueChars = Infinity){
+  function buildExecutiveSummaryParagraphs(all, baseline = {}, maxDestaqueChars = Infinity, includeDestaques = true){
     const nExecucao = all.filter(p => p.estado === 'em_execucao').length;
     const nConcluido = all.filter(p => p.estado === 'concluido').length;
     const nAtraso = all.filter(p => p.estado === 'em_atraso').length;
@@ -1441,11 +1469,21 @@
       : 'Nota: não se identificam, nesta atualização, projetos que requeiram atenção particular ao nível da execução.';
 
     const highlighted = all.filter(p => p.destaques && p.destaques.trim()).slice(0, 3);
-    const p4 = highlighted.length
+    const p4 = (includeDestaques && highlighted.length)
       ? `Destaques: ${highlighted.map(p => `${p.nome} — ${truncateText(p.destaques.trim(), maxDestaqueChars).replace(/\.+$/, '')}`).join('; ')}.`
       : null;
 
     return [p1, buildEvolutionParagraph(all, baseline), p2, p3, p4].filter(Boolean);
+  }
+
+  function buildDestaquesByCoordenacao(all){
+    const withDestaques = all.filter(p => p.destaques && p.destaques.trim());
+    if(!withDestaques.length) return [];
+    const groups = groupByUnidade(withDestaques);
+    return Object.keys(groups).sort().map(key => ({
+      unidade: key,
+      items: groups[key].map(p => `${p.nome} — ${p.destaques.trim().replace(/\.+$/, '')}.`),
+    }));
   }
 
   function buildCoordenacaoBoxes(all){
