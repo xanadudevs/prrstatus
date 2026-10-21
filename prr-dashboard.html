@@ -1326,7 +1326,7 @@
     return sentences.length ? sentences.join(' ') : null;
   }
 
-  function buildExecutiveSummaryParagraphs(all, baseline = {}){
+  function buildExecutiveSummaryParagraphs(all, baseline = {}, maxDestaqueChars = Infinity){
     const nExecucao = all.filter(p => p.estado === 'em_execucao').length;
     const nConcluido = all.filter(p => p.estado === 'concluido').length;
     const nAtraso = all.filter(p => p.estado === 'em_atraso').length;
@@ -1397,7 +1397,7 @@
 
     const highlighted = all.filter(p => p.destaques && p.destaques.trim()).slice(0, 3);
     const p4 = highlighted.length
-      ? `Destaques: ${highlighted.map(p => `${p.nome} — ${truncateText(p.destaques.trim(), 140).replace(/\.+$/, '')}`).join('; ')}.`
+      ? `Destaques: ${highlighted.map(p => `${p.nome} — ${truncateText(p.destaques.trim(), maxDestaqueChars).replace(/\.+$/, '')}`).join('; ')}.`
       : null;
 
     return [p1, buildEvolutionParagraph(all, baseline), p2, p3, p4].filter(Boolean);
@@ -1436,7 +1436,7 @@
     const narrativeY = 1.45;
     const narrativeH = boxes.length ? 3.1 : (PAGE_H - narrativeY - 0.5);
     slide.addShape(pres.ShapeType.roundRect, { x: MARGIN, y: narrativeY, w: PAGE_W - MARGIN * 2, h: narrativeH, rectRadius: 0.06, fill: { color: PPT_COLOR.card }, line: { color: PPT_COLOR.line, width: 0.75 } });
-    slide.addText(buildExecutiveSummaryParagraphs(all, state.baseline).join('\n\n'), {
+    slide.addText(buildExecutiveSummaryParagraphs(all, state.baseline, 140).join('\n\n'), {
       x: MARGIN + 0.35, y: narrativeY + 0.22, w: PAGE_W - MARGIN * 2 - 0.7, h: narrativeH - 0.44,
       fontSize: 13, color: PPT_COLOR.ink, fontFace: 'Overpass', valign: 'top', lineSpacingMultiple: 1.25, shrinkText: true,
     });
