@@ -53,14 +53,14 @@
   .brand-logo{ height:48px; width:auto; display:block; }
 
   .toolbar{ display:flex; align-items:center; gap: 12px; flex-wrap: wrap; }
-  .toolbar button{
+  .toolbar button, .toolbar a{
     background: var(--ink); color: #fff; border: none; border-radius: 7px;
     font-family: 'Overpass', sans-serif; font-weight: 700; font-size: 12.5px;
-    padding: 10px 16px; cursor: pointer;
+    padding: 10px 16px; cursor: pointer; text-decoration: none; display: inline-block;
   }
-  .toolbar button:hover{ opacity: .85; }
+  .toolbar button:hover, .toolbar a:hover{ opacity: .85; }
   .toolbar button:disabled{ background: var(--line); cursor: not-allowed; }
-  .toolbar button.secondary{ background: var(--card); color: var(--ink); border: 1px solid var(--line); }
+  .toolbar button.secondary, .toolbar a.secondary{ background: var(--card); color: var(--ink); border: 1px solid var(--line); }
 
   .status-msg{ font-size: 12.5px; color: var(--ink-soft); font-weight: 600; min-height: 18px; }
   .status-msg.err{ color: var(--risco); }
@@ -278,6 +278,7 @@
       <button id="exportExcelBtn">Exportar Excel</button>
       <button id="exportPptxBtn">Exportar PowerPoint</button>
       <button id="releaseNotesBtn" class="secondary">Novidades</button>
+      <a href="https://claude.ai/artifact/JbqhGu3gNyWchigU3vx3ZK#74609a7b-3f03.mfnqk7a9d86.220" target="_blank" rel="noopener noreferrer" class="secondary">Temas para reuniões PRR</a>
     </div>
   </header>
   <p class="status-msg" id="statusMsg"></p>
